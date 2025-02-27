@@ -28,7 +28,7 @@ void motor_setup(struct MotorPCM *m, String name, int pinInput1, int pinInput2, 
 void motor_loop(MotorPCM *m, unsigned long updateTime);
 
 void motor_set_state(MotorPCM *m, MotorPcmState ms);
-void motor_set_pulsewidth(MotorPCM *m, int pulseWidth);
+int motor_set_pulsewidth(MotorPCM *m, int pulseWidth);
 
 
 #endif // __MotorPCM_h__

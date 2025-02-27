@@ -54,7 +54,7 @@ void motor_set_state(MotorPCM *m, MotorPcmState ms) {
  * speed must be 0-255.
  * https://www.arduino.cc/reference/tr/language/functions/analog-io/analogwrite/
  */
-void motor_set_pulsewidth(MotorPCM *m, int pulseWidth) {
+int motor_set_pulsewidth(MotorPCM *m, int pulseWidth) {
   if (pulseWidth < 0) 
     pulseWidth = 0;
   if (pulseWidth > 255) 
@@ -62,4 +62,5 @@ void motor_set_pulsewidth(MotorPCM *m, int pulseWidth) {
   
   m->motorPulseWidth = pulseWidth;
   bclogger("motor_set_pulsewidth: \"%s\" width=%d", m->name.c_str(), m->motorPulseWidth);
+  return m->motorPulseWidth;
 }
