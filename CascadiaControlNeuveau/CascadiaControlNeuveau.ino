@@ -28,6 +28,14 @@
 #define PIN_TRAIN_MOTOR_IN2         35 // Digital Pin, output
 #define PIN_TRAIN_MOTOR_ENB         3  // Digital & PWM Output Pin
 
+// Lego PF Light Array
+#define PIN_PF_LIGHT_BUTTON_MODE    30 // Digital Pin, input
+#define PIN_PF_LIGHT_1              40 // Digital Pin, output
+#define PIN_PF_LIGHT_2              41 // Digital Pin, output
+#define PIN_PF_LIGHT_3              42 // Digital Pin, output
+#define PIN_PF_LIGHT_4              43 // Digital Pin, output
+#define PIN_PF_LIGHT_5              44 // Digital Pin, output
+
 // LCD Display subsystem
 #define PIN_I2C_SDA               20 // Dedicated SDA Output Pin (mega only)
 #define PIN_I2C_SCL               21 // Dedicated SCL Output Pin (mega only)
@@ -72,6 +80,11 @@ SpringButton  buttonTrainDir;
 SpringButton  buttonTrainInc;
 SpringButton  buttonTrainDec;
 SliderInput   sliderTrain;
+
+// Globals: PowerFunctions (PF) Lights
+boolean       usePFLight = true;
+boolean       pfLightMode = false;
+SpringButton  buttonPFLightMode;
 
 // Global Variables: old cascadia subsystem. TODO: move to new file.
 boolean useSlab1 = false;
@@ -184,6 +197,16 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
 
 
 /*
+ * pf-light button callbacks
+ */
+ 
+void onButtonDownPFLight(SpringButton *button, long updateTime) {
+  pfLightMode = !pfLightMode;
+  bclogger("pf-light mode: toggled to %d", pfLightMode);
+}
+
+
+/*
  * Entrypoint: called once when the program first starts, just to initialize all the sub-components.
  */
 void setup() {  
@@ -230,6 +253,16 @@ void setup() {
     //sliderinput_setup(&sliderTrain, "train velocity", PIN_TRAIN_SLIDE, &onSliderChangeTrain);
 
     bclogger("setup: train complete, power=%d, dir=%d, v=%d", trainPower, trainDirection, trainVelocity);
+  }
+
+  if (usePFLight) {
+    bclogger("setup: pf-light start...");
+    
+    pfLightMode = false;
+    
+    springbutton_setup(&buttonPFLightMode, "pf-light mode", PIN_PF_LIGHT_BUTTON_MODE, &onButtonDownPFLight);
+
+    bclogger("setup: pf-light complete, mode=%d", pfLightMode);
   }
 
   // TODO: move this to a different file.
@@ -280,6 +313,18 @@ void loop() {
       motor_loop(&motorTrain, lastUpdateTime);
   }
 
+  if (usePFLight) {
+      // Process inputs first so they have immediate impact.
+      springbutton_loop(&buttonPFLightMode, lastUpdateTime);
+
+      // Increment the rest of the state machines.
+      if (pfLightMode) {
+        digitalWrite(PIN_PF_LIGHT_1, true);
+      } else {
+        digitalWrite(PIN_PF_LIGHT_1, false);
+      }
+  }
+
   if (useDisplay) {
       // Update the OLED screen with our current state.
 
@@ -289,7 +334,7 @@ void loop() {
       // Format the Uptime.
       int upSecs = (lastUpdateTime - startTime) / 1000;
       char line1Buffer[50];
-      snprintf(line1Buffer, 50, "%09d %s", upSecs, buildDatestamp);
+      snprintf(line1Buffer, 50, "%09   d %s", upSecs, buildDatestamp);
   
       // Windmill monitoring.
       char line2Buffer[50];
