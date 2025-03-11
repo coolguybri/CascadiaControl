@@ -45,13 +45,14 @@ void SeaRobDisplay::displayConnectedStandard(
     		  const char * 	line1,
     		  const char * 	line2, 
     		  const char * 	line3) {
-  displayStandard(connected ? "CONNECTED" : "DISCONNECTED", line1, line2, line3);
+  displayStandard(connected ? "CONNECTED" : "DISCONNECTED", line1, line2, line3, NULL);
 }
     		  
 /**
  * Main output for status while in main sequence. This is called once per loop.
  */
-void SeaRobDisplay::displayStandard(const char *header, const char *line1, const char *line2, const char *line3) { 
+void SeaRobDisplay::displayStandard(const char *header, const char *line1, const char *line2, 
+			const char *line3, const char *line4) { 
   // Init for output. 
   _display.clear();
   _display.setTextSize(1);
@@ -82,6 +83,8 @@ void SeaRobDisplay::displayStandard(const char *header, const char *line1, const
   _display.println(line2);
   _display.setCursor(0,37);
   _display.println(line3);
+  _display.setCursor(0,47);
+  _display.println(line4);
   
   /* Print the local bluetooth name.
   int beginBlueName = 36;

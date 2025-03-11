@@ -14,33 +14,40 @@
 #define PIN_WINDMILL_BUTTON_DIR     23 // Digital Pin, input
 #define PIN_WINDMILL_BUTTON_INC     24 // Digital Pin, input
 #define PIN_WINDMILL_BUTTON_DEC     25 // Digital Pin, input
-#define PIN_WINDMILL_MOTOR_IN1      32 // Digital Pin, output
-#define PIN_WINDMILL_MOTOR_IN2      33 // Digital Pin, output
-#define PIN_WINDMILL_MOTOR_ENB      2  // Digital & PWM Output Pin
+#define PIN_WINDMILL_MOTOR_IN1      52 // Digital Pin, output
+#define PIN_WINDMILL_MOTOR_IN2      53 // Digital Pin, output
+#define PIN_WINDMILL_MOTOR_ENB      2  // Digital PWM Pin, output
 
 // Train subsystem
 #define PIN_TRAIN_BUTTON_PWR        26 // Digital Pin, input
 #define PIN_TRAIN_BUTTON_DIR        27 // Digital Pin, input
 #define PIN_TRAIN_BUTTON_INC        28 // Digital Pin, input
 #define PIN_TRAIN_BUTTON_DEC        29 // Digital Pin, input
-#define PIN_TRAIN_SLIDER            A1 // Analog Input Pin
-#define PIN_TRAIN_MOTOR_IN1         34 // Digital Pin, output
-#define PIN_TRAIN_MOTOR_IN2         35 // Digital Pin, output
-#define PIN_TRAIN_MOTOR_ENB         3  // Digital & PWM Output Pin
+#define PIN_TRAIN_MOTOR_IN1         50 // Digital Pin, output
+#define PIN_TRAIN_MOTOR_IN2         51 // Digital Pin, output
+#define PIN_TRAIN_MOTOR_ENB         3  // Digital PWM Pin, output
 
-// Lego PF Light Array
-#define PIN_PF_LIGHT_BUTTON_MODE    30 // Digital Pin, input
-#define PIN_PF_LIGHT_1              40 // Digital Pin, output
-#define PIN_PF_LIGHT_2              41 // Digital Pin, output
-#define PIN_PF_LIGHT_3              42 // Digital Pin, output
-#define PIN_PF_LIGHT_4              43 // Digital Pin, output
-#define PIN_PF_LIGHT_5              44 // Digital Pin, output
+#define PIN_TRAIN_SLIDER            A1 // Analog Pin, input (experimental)
+
+// Lego PowerFunctions Light Array
+#define PIN_PF_LIGHT_BUTTON_1       30 // Digital Pin, input
+#define PIN_PF_LIGHT_BUTTON_2       31 // Digital Pin, input
+#define PIN_PF_LIGHT_BUTTON_3       32 // Digital Pin, input
+#define PIN_PF_LIGHT_BUTTON_4       33 // Digital Pin, input
+#define PIN_PF_LIGHT_BUTTON_5       34 // Digital Pin, input
+#define PIN_PF_LIGHT_BUTTON_6       35 // Digital Pin, input
+#define PIN_PF_LIGHT_CTRL_1         40 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_2         41 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_3         42 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_4         43 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_5         44 // Digital Pin, output
+
 
 // LCD Display subsystem
-#define PIN_I2C_SDA               20 // Dedicated SDA Output Pin (mega only)
-#define PIN_I2C_SCL               21 // Dedicated SCL Output Pin (mega only)
+#define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
+#define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
 
-// TBD: cascadia code; move tp seperate file.
+// TBD: cascadia code; move to seperate file.
 #define PIN_MONORAIL_BUTTON     5
 #define PIN_CAVE_BUTTON         6
 #define MONORAIL_POLE_PIN_START_SLAB1     22
@@ -83,8 +90,17 @@ SliderInput   sliderTrain;
 
 // Globals: PowerFunctions (PF) Lights
 boolean       usePFLight = true;
-boolean       pfLightMode = false;
-SpringButton  buttonPFLightMode;
+Light         lightStation1;
+Light         lightStation2;
+Light         lightBugle1;
+Light         lightStorm1;
+Light         lightStorm2;
+SpringButton  buttonPFLight1;
+SpringButton  buttonPFLight2;
+SpringButton  buttonPFLight3;
+SpringButton  buttonPFLight4;
+SpringButton  buttonPFLight5;
+SpringButton  buttonPFLight6;
 
 // Global Variables: old cascadia subsystem. TODO: move to new file.
 boolean useSlab1 = false;
@@ -192,7 +208,8 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
   //trainDirection = !trainDirection;
   bclogger("train velocity: set to %d", newValue);
 
-  // TODO: translate from 104 ratio to 2256 raio. Store as float?
+  // TODO: This doesnt work yet.
+  // Translate from 104 ratio to 2256 raio. Store as float?
 }
 
 
@@ -200,9 +217,33 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
  * pf-light button callbacks
  */
  
-void onButtonDownPFLight(SpringButton *button, long updateTime) {
-  pfLightMode = !pfLightMode;
-  bclogger("pf-light mode: toggled to %d", pfLightMode);
+void onButtonDownLightStation1(SpringButton *button, long updateTime) {
+  light_toggle_onoff(&lightStation1);
+  bclogger("lightStation1: toggled to %d", lightStation1.state);
+}
+
+void onButtonDownLightStation2(SpringButton *button, long updateTime) {
+  light_toggle_onoff(&lightStation2);
+  bclogger("lightStation2: toggled to %d", lightStation2.state);
+}
+
+void onButtonDownLightBugle1(SpringButton *button, long updateTime) {
+  light_toggle_onoff(&lightBugle1);
+  bclogger("lightBugle1: toggled to %d", lightBugle1.state);
+}
+
+void onButtonDownLightStorm1(SpringButton *button, long updateTime) {
+  light_toggle_onoff(&lightStorm1);
+  bclogger("lightStorm1: toggled to %d", lightStorm1.state);
+}
+
+void onButtonDownLightStorm2(SpringButton *button, long updateTime) {
+  light_toggle_onoff(&lightStorm2);
+  bclogger("lightStorm2: toggled to %d", lightStorm2.state);
+}
+
+void onButtonDownLightSelector(SpringButton *button, long updateTime) {
+  bclogger("lightSelector: yo to %d", lightStorm2.state);
 }
 
 
@@ -258,11 +299,21 @@ void setup() {
   if (usePFLight) {
     bclogger("setup: pf-light start...");
     
-    pfLightMode = false;
+    light_setup(&lightStation1, PIN_PF_LIGHT_CTRL_1, LightState::Off, 0);
+    light_setup(&lightStation2, PIN_PF_LIGHT_CTRL_2, LightState::Off, 0);
+    light_setup(&lightBugle1, PIN_PF_LIGHT_CTRL_3, LightState::Off, 0);
+    light_setup(&lightStorm1, PIN_PF_LIGHT_CTRL_4, LightState::Off, 0);
+    light_setup(&lightStorm2, PIN_PF_LIGHT_CTRL_5, LightState::Off, 0);
     
-    springbutton_setup(&buttonPFLightMode, "pf-light mode", PIN_PF_LIGHT_BUTTON_MODE, &onButtonDownPFLight);
+    springbutton_setup(&buttonPFLight1, "pf-light station1", PIN_PF_LIGHT_BUTTON_1, &onButtonDownLightStation1);
+    springbutton_setup(&buttonPFLight2, "pf-light station2", PIN_PF_LIGHT_BUTTON_2, &onButtonDownLightStation2);
+    springbutton_setup(&buttonPFLight3, "pf-light bugle1", PIN_PF_LIGHT_BUTTON_3, &onButtonDownLightBugle1);
+    springbutton_setup(&buttonPFLight4, "pf-light storm1", PIN_PF_LIGHT_BUTTON_4, &onButtonDownLightStorm1);
+    springbutton_setup(&buttonPFLight5, "pf-light storm2", PIN_PF_LIGHT_BUTTON_5, &onButtonDownLightStorm2);
+    springbutton_setup(&buttonPFLight5, "pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
 
-    bclogger("setup: pf-light complete, mode=%d", pfLightMode);
+    bclogger("setup: pf-light complete, mode=%d/%d/%d/%d/%d", 
+      lightStation1.state, lightStation2.state, lightBugle1.state, lightStorm1.state, lightStorm2.state);
   }
 
   // TODO: move this to a different file.
@@ -315,14 +366,19 @@ void loop() {
 
   if (usePFLight) {
       // Process inputs first so they have immediate impact.
-      springbutton_loop(&buttonPFLightMode, lastUpdateTime);
+      springbutton_loop(&buttonPFLight1, lastUpdateTime);
+      springbutton_loop(&buttonPFLight2, lastUpdateTime);
+      springbutton_loop(&buttonPFLight3, lastUpdateTime);
+      springbutton_loop(&buttonPFLight4, lastUpdateTime);
+      springbutton_loop(&buttonPFLight5, lastUpdateTime);
+      springbutton_loop(&buttonPFLight6, lastUpdateTime);
 
       // Increment the rest of the state machines.
-      if (pfLightMode) {
-        digitalWrite(PIN_PF_LIGHT_1, true);
-      } else {
-        digitalWrite(PIN_PF_LIGHT_1, false);
-      }
+      light_loop(&lightStation1, lastUpdateTime);
+      light_loop(&lightStation2, lastUpdateTime);
+      light_loop(&lightBugle1, lastUpdateTime);
+      light_loop(&lightStorm1, lastUpdateTime);
+      light_loop(&lightStorm2, lastUpdateTime);
   }
 
   if (useDisplay) {
@@ -334,7 +390,7 @@ void loop() {
       // Format the Uptime.
       int upSecs = (lastUpdateTime - startTime) / 1000;
       char line1Buffer[50];
-      snprintf(line1Buffer, 50, "%09   d %s", upSecs, buildDatestamp);
+      snprintf(line1Buffer, 50, "%09d %s", upSecs, buildDatestamp);
   
       // Windmill monitoring.
       char line2Buffer[50];
@@ -345,13 +401,23 @@ void loop() {
       char line3Buffer[50];
       snprintf(line3Buffer, 50, "trn: [%c] %s %03d %d%%", 
         trainPower ? '*' : ' ', trainDirection ? "<-" : "->", trainVelocity, (trainVelocity * 100) / 255);
+
+      // PF-Light monitoring
+      char line4Buffer[50];
+      snprintf(line4Buffer, 50, "lit: [%c%c][%c][%c%c]", 
+        light_ison(&lightStation1) ? '*' : ' ', 
+        light_ison(&lightStation2) ? '*' : ' ',
+        light_ison(&lightBugle1) ? '*' : ' ', 
+        light_ison(&lightStorm1) ? '*' : ' ',
+        light_ison(&lightStorm2) ? '*' : ' ');
   
       // Send to the display.
       display.displayStandard(
         headerBuffer,
         line1Buffer,
         line2Buffer,
-        line3Buffer);
+        line3Buffer, 
+        line4Buffer);
   }
 
   // Process our input controls. 

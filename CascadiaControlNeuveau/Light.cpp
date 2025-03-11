@@ -1,5 +1,6 @@
 #include "arduino.h"
 #include "Light.h"
+#include "Logger.h"
 
 #define BLINK_INTERVAL_ON 2000
 #define BLINK_INTERVAL_OFF 250
@@ -17,10 +18,8 @@ void light_setup(Light *l, int pin, LightState state, int offset) {
   l->blinkIntervalOn = BLINK_INTERVAL_ON;
   l->blinkIntervalOff = BLINK_INTERVAL_OFF;
 
-  char logbuf[500];
-  snprintf(logbuf, 500, "light_setup: pin=%d, state=%d, offset=%d, bstate=%b", 
+  bclogger("light_setup: pin=%d, state=%d, offset=%d, bstate=%b", 
     l->pin, l->state, l->blinkTime, l->blinkState);
-  Serial.println(logbuf);
 }
 
 
@@ -30,9 +29,7 @@ void light_setup(Light *l, int pin, LightState state, int offset) {
 void light_update_state(Light *l, LightState state) {
    l->state = state;
    
-   char logbuf[500];
-   snprintf(logbuf, 500, "light_update_state: pin=%d, state=%d", l->pin, l->state);
-   Serial.println(logbuf);
+   bclogger("light_update_state: pin=%d, state=%d", l->pin, l->state);
 }
 
 
@@ -50,15 +47,41 @@ void light_toggle_onoff(Light *l) {
       break;
     
     default:
-      char logbuf[500];
-      snprintf(logbuf, 500, "light_toggle_onoff: pin=%d, ILLEGAL STATE CHANGE", l->pin);
-      Serial.println(logbuf);
+      bclogger("light_toggle_onoff: pin=%d, WIERD STATE CHANGE from %d", l->pin, l->state);
+      l->state = LightState::Off;
       return;
    }
    
-   char logbuf[500];
-   snprintf(logbuf, 500, "light_toggle_onoff: pin=%d, state=%d", l->pin, l->state);
-   Serial.println(logbuf);
+   bclogger("light_toggle_onoff: pin=%d, state=%d", l->pin, l->state);
+}
+
+
+/*
+ * 
+ */
+boolean light_ison(Light *l) {
+  return l->blinkState;
+}
+
+
+/*
+ * 
+ */
+String light_get_state_name(Light *l) {
+  switch (l->state) {
+    case LightState::Off:
+      return "off";
+      
+    case LightState::On: 
+     return "on";
+
+    case LightState::UniformBlink:
+      return "blink";
+    
+    default:
+      bclogger("light_toggle_onoff: pin=%d, ILLEGAL STATE CHANGE", l->pin);
+      return;
+   }
 }
 
 
@@ -84,9 +107,7 @@ void light_loop(Light *l, unsigned long updateTime) {
       break;
   }
 
-  char logbuf[500];
-  snprintf(logbuf, 500, "light_loop: pin=%d, state=%d, bstate=%b", l->pin, l->state, l->blinkState);
-  Serial.println(logbuf);
+  //bclogger("light_loop: pin=%d, state=%d, bstate=%b", l->pin, l->state, l->blinkState);
   
   // write out current state.
   digitalWrite(l->pin, l->blinkState);

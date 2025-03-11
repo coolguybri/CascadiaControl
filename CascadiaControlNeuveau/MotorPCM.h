@@ -24,7 +24,7 @@ struct MotorPCM {
 };
 
 
-void motor_setup(struct MotorPCM *m, String name, int pinInput1, int pinInput2, int pinEnable);
+void motor_setup(MotorPCM *m, String name, int pinInput1, int pinInput2, int pinEnable);
 void motor_loop(MotorPCM *m, unsigned long updateTime);
 
 void motor_set_state(MotorPCM *m, MotorPcmState ms);

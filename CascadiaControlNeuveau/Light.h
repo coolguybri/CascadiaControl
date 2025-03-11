@@ -27,6 +27,8 @@ void light_setup(Light *l, int pin, LightState state, int offset);
 
 void light_update_state(Light *l, LightState state);
 void light_toggle_onoff(Light *l);
+boolean light_ison(Light *l);
+String light_get_state_name(Light *l);
 
 void light_loop(Light *l, unsigned long updateTime);
 
