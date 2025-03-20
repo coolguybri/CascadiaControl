@@ -42,12 +42,11 @@
 #define PIN_PF_LIGHT_CTRL_4         43 // Digital Pin, output
 #define PIN_PF_LIGHT_CTRL_5         44 // Digital Pin, output
 
-
 // LCD Display subsystem
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
 #define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
 
-// TBD: cascadia code; move to seperate file.
+// TODO: cascadia code; move to seperate file.
 #define PIN_MONORAIL_BUTTON     5
 #define PIN_CAVE_BUTTON         6
 #define MONORAIL_POLE_PIN_START_SLAB1     22
@@ -55,15 +54,17 @@
 
 
 // Global Variables: Global Run state of the entire aplication.
-unsigned long startTime = 0; 
-unsigned long lastUpdateTime = 0;
-String buildName = String("BasementControl");
-const char buildTimestamp[] =  __DATE__ " " __TIME__;
-const char buildDatestamp[] = __DATE__;
+unsigned long   startTime = 0; 
+unsigned long   lastUpdateTime = 0;
+String          buildName = String("BasementControl");
+const char      buildTimestamp[] =  __DATE__ " " __TIME__;
+const char      buildDatestamp[] = __DATE__;
+
 
 // Globals: OLED Display subsystem, connected via I2C interface
 boolean useDisplay = true; 
 SeaRobDisplay display(PIN_I2C_SDA, PIN_I2C_SCL);
+
 
 // Globals: Windmill subsystem.
 boolean       useWindmill = true;
@@ -76,6 +77,7 @@ SpringButton  buttonWindmillDir;
 SpringButton  buttonWindmillInc;
 SpringButton  buttonWindmillDec;
 
+
 // Globals: Train subsystem.
 boolean       useTrain = true;
 boolean       trainPower = false;
@@ -87,6 +89,7 @@ SpringButton  buttonTrainDir;
 SpringButton  buttonTrainInc;
 SpringButton  buttonTrainDec;
 SliderInput   sliderTrain;
+
 
 // Globals: PowerFunctions (PF) Lights
 boolean       usePFLight = true;
@@ -102,11 +105,11 @@ SpringButton  buttonPFLight4;
 SpringButton  buttonPFLight5;
 SpringButton  buttonPFLight6;
 
+
 // Global Variables: old cascadia subsystem. TODO: move to new file.
 boolean useSlab1 = false;
 MonorailSystem  monorail;
 SpringButton    monorailButton;
-boolean useSlab6 = false;
 Light           caveLight;
 SpringButton    caveButton;
 
@@ -216,34 +219,75 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
 /*
  * pf-light button callbacks
  */
+
+ typedef enum {
+  BlinkState_Off = 0,
+  BlinkState_SyncBlink,
+  BlinkState_UnSyncBlink,
+} BlinkState;
+
+BlinkState bstate;
  
 void onButtonDownLightStation1(SpringButton *button, long updateTime) {
   light_toggle_onoff(&lightStation1);
+  bstate = BlinkState_Off;
   bclogger("lightStation1: toggled to %d", lightStation1.state);
 }
 
 void onButtonDownLightStation2(SpringButton *button, long updateTime) {
   light_toggle_onoff(&lightStation2);
+  bstate = BlinkState_Off;
   bclogger("lightStation2: toggled to %d", lightStation2.state);
 }
 
 void onButtonDownLightBugle1(SpringButton *button, long updateTime) {
   light_toggle_onoff(&lightBugle1);
+  bstate = BlinkState_Off;
   bclogger("lightBugle1: toggled to %d", lightBugle1.state);
 }
 
 void onButtonDownLightStorm1(SpringButton *button, long updateTime) {
   light_toggle_onoff(&lightStorm1);
+  bstate = BlinkState_Off;
   bclogger("lightStorm1: toggled to %d", lightStorm1.state);
 }
 
 void onButtonDownLightStorm2(SpringButton *button, long updateTime) {
   light_toggle_onoff(&lightStorm2);
+  bstate = BlinkState_Off;
   bclogger("lightStorm2: toggled to %d", lightStorm2.state);
 }
 
+#define DURATION_ON 500
+#define DURATION_OFF 1000
+
 void onButtonDownLightSelector(SpringButton *button, long updateTime) {
-  bclogger("lightSelector: yo to %d", lightStorm2.state);
+  
+  switch (bstate) {
+    case BlinkState_Off:
+      bstate = BlinkState_SyncBlink;
+      light_update_blink(&lightStation1, updateTime, 0, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStation1, LightState::UniformBlink);
+      light_update_blink(&lightStation2, updateTime, 0, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStation2, LightState::UniformBlink);
+      break;
+      
+    case BlinkState_SyncBlink:
+      bstate = BlinkState_UnSyncBlink;
+      light_update_blink(&lightStation1, updateTime, 0, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStation1, LightState::UniformBlink);
+      light_update_blink(&lightStation2, updateTime, 250, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStation2, LightState::UniformBlink);
+      break;
+      
+    case BlinkState_UnSyncBlink:
+      bstate = BlinkState_Off;
+      light_update_state(&lightStation1, LightState::Off);
+      light_update_state(&lightStation2, LightState::Off);
+      break;
+  }  
+
+  bclogger("lightSelector: now set to %d", bstate);
 }
 
 
@@ -310,7 +354,7 @@ void setup() {
     springbutton_setup(&buttonPFLight3, "pf-light bugle1", PIN_PF_LIGHT_BUTTON_3, &onButtonDownLightBugle1);
     springbutton_setup(&buttonPFLight4, "pf-light storm1", PIN_PF_LIGHT_BUTTON_4, &onButtonDownLightStorm1);
     springbutton_setup(&buttonPFLight5, "pf-light storm2", PIN_PF_LIGHT_BUTTON_5, &onButtonDownLightStorm2);
-    springbutton_setup(&buttonPFLight5, "pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
+    springbutton_setup(&buttonPFLight6, "pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
 
     bclogger("setup: pf-light complete, mode=%d/%d/%d/%d/%d", 
       lightStation1.state, lightStation2.state, lightBugle1.state, lightStorm1.state, lightStorm2.state);
