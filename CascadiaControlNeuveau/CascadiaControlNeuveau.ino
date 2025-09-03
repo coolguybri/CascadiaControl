@@ -38,9 +38,9 @@
 #define PIN_PF_LIGHT_BUTTON_6       35 // Digital Pin, input
 #define PIN_PF_LIGHT_CTRL_1         40 // Digital Pin, output
 #define PIN_PF_LIGHT_CTRL_2         41 // Digital Pin, output
-#define PIN_PF_LIGHT_CTRL_3         42 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_3         44 // Digital Pin, output (switched with 42)
 #define PIN_PF_LIGHT_CTRL_4         43 // Digital Pin, output
-#define PIN_PF_LIGHT_CTRL_5         44 // Digital Pin, output
+#define PIN_PF_LIGHT_CTRL_5         42 // Digital Pin, output (switched with 44)
 
 // LCD Display subsystem
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
@@ -270,20 +270,30 @@ void onButtonDownLightSelector(SpringButton *button, long updateTime) {
       light_update_state(&lightStation1, LightState::UniformBlink);
       light_update_blink(&lightStation2, updateTime, 0, DURATION_ON, DURATION_OFF);
       light_update_state(&lightStation2, LightState::UniformBlink);
+      light_update_blink(&lightStorm1, updateTime, 0, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStorm1, LightState::UniformBlink);
+      light_update_blink(&lightStorm2, updateTime, 0, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStorm2, LightState::UniformBlink);
       break;
       
     case BlinkState_SyncBlink:
       bstate = BlinkState_UnSyncBlink;
       light_update_blink(&lightStation1, updateTime, 0, DURATION_ON, DURATION_OFF);
       light_update_state(&lightStation1, LightState::UniformBlink);
-      light_update_blink(&lightStation2, updateTime, 250, DURATION_ON, DURATION_OFF);
+      light_update_blink(&lightStation2, updateTime, 125, DURATION_ON, DURATION_OFF);
       light_update_state(&lightStation2, LightState::UniformBlink);
+      light_update_blink(&lightStorm1, updateTime, 250, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStorm1, LightState::UniformBlink);
+      light_update_blink(&lightStorm2, updateTime, 375, DURATION_ON, DURATION_OFF);
+      light_update_state(&lightStorm2, LightState::UniformBlink);
       break;
       
     case BlinkState_UnSyncBlink:
       bstate = BlinkState_Off;
       light_update_state(&lightStation1, LightState::Off);
       light_update_state(&lightStation2, LightState::Off);
+      light_update_state(&lightStorm1, LightState::Off);
+      light_update_state(&lightStorm2, LightState::Off);
       break;
   }  
 
