@@ -439,7 +439,7 @@ void loop() {
       // Update the OLED screen with our current state.
 
       char headerBuffer[50];
-      snprintf(headerBuffer, 50, "coolguybri cntrl 1.0");
+      snprintf(headerBuffer, 50, "coolguybri cntrl 2.0");
       
       // Format the Uptime.
       int upSecs = (lastUpdateTime - startTime) / 1000;
