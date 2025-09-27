@@ -1,5 +1,5 @@
-#include "arduino.h"
-#include "Logger.h"
+#include "Arduino.h"
+#include "SeaRobLogger.h"
 #include "MotorPCM.h"
 
 /*

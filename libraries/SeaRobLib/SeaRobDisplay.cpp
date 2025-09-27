@@ -1,4 +1,3 @@
-// Import external libraries
 #include "SeaRobDisplay.h"
 
 /**

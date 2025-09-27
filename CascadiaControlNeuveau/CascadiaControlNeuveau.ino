@@ -1,10 +1,12 @@
-#include "arduino.h"
-#include "Logger.h"
-#include "MonorailSystem.h"
+#include "Arduino.h"
+#include "SeaRobDisplay.h"
+#include "SeaRobLight.h"
+#include "SeaRobLogger.h"
+#include "SeaRobSpringButton.h"
+
 #include "MotorPCM.h"
 #include "SliderInput.h"
-#include "SpringButton.h"
-#include "SeaRobDisplay.h"
+
 
 // Constants: Specific I/O Pins that must be used.
 // Assumes the Arduino Mega 3560 R3 Board.
@@ -46,12 +48,6 @@
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
 #define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
 
-// TODO: cascadia code; move to seperate file.
-#define PIN_MONORAIL_BUTTON     5
-#define PIN_CAVE_BUTTON         6
-#define MONORAIL_POLE_PIN_START_SLAB1     22
-#define CAVE_LIGHT_PIN                    52
-
 
 // Global Variables: Global Run state of the entire aplication.
 unsigned long   startTime = 0; 
@@ -72,10 +68,10 @@ boolean       windmillPower = false;
 boolean       windmillDirection = true;
 int           windmillVelocity = 120;
 MotorPCM      motorWindmill;
-SpringButton  buttonWindmillPwr;
-SpringButton  buttonWindmillDir;
-SpringButton  buttonWindmillInc;
-SpringButton  buttonWindmillDec;
+SeaRobSpringButton *  buttonWindmillPwr;
+SeaRobSpringButton *  buttonWindmillDir;
+SeaRobSpringButton *  buttonWindmillInc;
+SeaRobSpringButton *  buttonWindmillDec;
 
 
 // Globals: Train subsystem.
@@ -84,56 +80,33 @@ boolean       trainPower = false;
 boolean       trainDirection = true;
 int           trainVelocity = 200;
 MotorPCM      motorTrain;
-SpringButton  buttonTrainPwr;
-SpringButton  buttonTrainDir;
-SpringButton  buttonTrainInc;
-SpringButton  buttonTrainDec;
+SeaRobSpringButton *  buttonTrainPwr;
+SeaRobSpringButton *  buttonTrainDir;
+SeaRobSpringButton *  buttonTrainInc;
+SeaRobSpringButton *  buttonTrainDec;
 SliderInput   sliderTrain;
 
 
 // Globals: PowerFunctions (PF) Lights
-boolean       usePFLight = true;
-Light         lightStation1;
-Light         lightStation2;
-Light         lightBugle1;
-Light         lightStorm1;
-Light         lightStorm2;
-SpringButton  buttonPFLight1;
-SpringButton  buttonPFLight2;
-SpringButton  buttonPFLight3;
-SpringButton  buttonPFLight4;
-SpringButton  buttonPFLight5;
-SpringButton  buttonPFLight6;
-
-
-// Global Variables: old cascadia subsystem. TODO: move to new file.
-boolean useSlab1 = false;
-MonorailSystem  monorail;
-SpringButton    monorailButton;
-Light           caveLight;
-SpringButton    caveButton;
-
-
-/*
- * Cascadia callback. TODO: move to a new file.
- */
- 
-int onMonorailButtonDown(SpringButton *button, long updateTime) {
-  bclogger("monorail light control: light mode toggle activated");
-  monorail_system_state_increment(&monorail, updateTime);
-}
-
-int onCaveButtonDown(SpringButton *button, long updateTime) {
-  bclogger("cave light control: light mode toggle activated");
-  light_toggle_onoff(&caveLight);
-}
+boolean               usePFLight = true;
+SeaRobLight *         lightStation1;
+SeaRobLight *         lightStation2;
+SeaRobLight *         lightBugle1;
+SeaRobLight *         lightStorm1;
+SeaRobLight *         lightStorm2;
+SeaRobSpringButton *  buttonPFLight1;
+SeaRobSpringButton *  buttonPFLight2;
+SeaRobSpringButton *  buttonPFLight3;
+SeaRobSpringButton *  buttonPFLight4;
+SeaRobSpringButton *  buttonPFLight5;
+SeaRobSpringButton *  buttonPFLight6;
 
 
 /*
  * Windmill button callbacks
  */
  
-void onButtonDownWindmillPwr(SpringButton *button, long updateTime) {
+void onButtonDownWindmillPwr(SeaRobSpringButton *button, long updateTime) {
   windmillPower = !windmillPower;
   bclogger("windmill power: toggled to %d", windmillPower);
 
@@ -144,7 +117,7 @@ void onButtonDownWindmillPwr(SpringButton *button, long updateTime) {
   }
 }
 
-void onButtonDownWindmillDir(SpringButton *button, long updateTime) {
+void onButtonDownWindmillDir(SeaRobSpringButton *button, long updateTime) {
   windmillDirection = !windmillDirection;
   bclogger("windmill direction: toggled to %d", windmillDirection);
 
@@ -155,13 +128,13 @@ void onButtonDownWindmillDir(SpringButton *button, long updateTime) {
   }
 }
 
-void onButtonDownWindmillInc(SpringButton *button, long updateTime) {
+void onButtonDownWindmillInc(SeaRobSpringButton *button, long updateTime) {
   windmillVelocity += 20;
   windmillVelocity = motor_set_pulsewidth(&motorWindmill, windmillVelocity);
   bclogger("windmill inc: %d", windmillVelocity);
 }
 
-void onButtonDownWindmillDec(SpringButton *button, long updateTime) {
+void onButtonDownWindmillDec(SeaRobSpringButton *button, long updateTime) {
   windmillVelocity -= 20;
   windmillVelocity = motor_set_pulsewidth(&motorWindmill, windmillVelocity);
   bclogger("windmill dec: %d", windmillVelocity);
@@ -172,7 +145,7 @@ void onButtonDownWindmillDec(SpringButton *button, long updateTime) {
  * Train button callbacks
  */
  
-void onButtonDownTrainPwr(SpringButton *button, long updateTime) {
+void onButtonDownTrainPwr(SeaRobSpringButton *button, long updateTime) {
   trainPower = !trainPower;
   bclogger("train power: toggled to %d", trainPower);
 
@@ -183,7 +156,7 @@ void onButtonDownTrainPwr(SpringButton *button, long updateTime) {
   }
 }
 
-void onButtonDownTrainDir(SpringButton *button, long updateTime) {
+void onButtonDownTrainDir(SeaRobSpringButton *button, long updateTime) {
   trainDirection = !trainDirection;
   bclogger("train direction: toggled to %d", trainDirection);
 
@@ -194,13 +167,13 @@ void onButtonDownTrainDir(SpringButton *button, long updateTime) {
   }
 }
 
-int onButtonDownTrainInc(SpringButton *button, long updateTime) {
+int onButtonDownTrainInc(SeaRobSpringButton *button, long updateTime) {
   trainVelocity += 20;
   trainVelocity = motor_set_pulsewidth(&motorTrain, trainVelocity);
   bclogger("train inc: %d", trainVelocity);
 }
 
-int onButtonDownTrainDec(SpringButton *button, long updateTime) {
+int onButtonDownTrainDec(SeaRobSpringButton *button, long updateTime) {
   trainVelocity -= 20;
   trainVelocity = motor_set_pulsewidth(&motorTrain, trainVelocity);
   bclogger("train dec: %d", trainVelocity);
@@ -228,72 +201,75 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
 
 BlinkState bstate;
  
-void onButtonDownLightStation1(SpringButton *button, long updateTime) {
-  light_toggle_onoff(&lightStation1);
+void onButtonDownLightStation1(SeaRobSpringButton *button, long updateTime) {
+  lightStation1->ToggleOnOff();
   bstate = BlinkState_Off;
-  bclogger("lightStation1: toggled to %d", lightStation1.state);
+  bclogger("lightStation1: toggled to %d", lightStation1->GetStateName());
 }
 
-void onButtonDownLightStation2(SpringButton *button, long updateTime) {
-  light_toggle_onoff(&lightStation2);
+void onButtonDownLightStation2(SeaRobSpringButton *button, long updateTime) {
+  lightStation2->ToggleOnOff();
   bstate = BlinkState_Off;
-  bclogger("lightStation2: toggled to %d", lightStation2.state);
+  bclogger("lightStation2: toggled to %d", lightStation2->GetStateName());
 }
 
-void onButtonDownLightBugle1(SpringButton *button, long updateTime) {
-  light_toggle_onoff(&lightBugle1);
+void onButtonDownLightBugle1(SeaRobSpringButton *button, long updateTime) {
+  lightBugle1->ToggleOnOff();
   bstate = BlinkState_Off;
-  bclogger("lightBugle1: toggled to %d", lightBugle1.state);
+  bclogger("lightBugle1: toggled to %d", lightBugle1->GetStateName());
 }
 
-void onButtonDownLightStorm1(SpringButton *button, long updateTime) {
-  light_toggle_onoff(&lightStorm1);
+void onButtonDownLightStorm1(SeaRobSpringButton *button, long updateTime) {
+  lightStorm1->ToggleOnOff();
   bstate = BlinkState_Off;
-  bclogger("lightStorm1: toggled to %d", lightStorm1.state);
+  bclogger("lightStorm1: toggled to %d", lightStorm1->GetStateName());
 }
 
-void onButtonDownLightStorm2(SpringButton *button, long updateTime) {
-  light_toggle_onoff(&lightStorm2);
+void onButtonDownLightStorm2(SeaRobSpringButton *button, long updateTime) {
+  lightStorm2->ToggleOnOff();
   bstate = BlinkState_Off;
-  bclogger("lightStorm2: toggled to %d", lightStorm2.state);
+  bclogger("lightStorm2: toggled to %d", lightStorm2->GetStateName());
 }
 
 #define DURATION_ON 500
 #define DURATION_OFF 1000
 
-void onButtonDownLightSelector(SpringButton *button, long updateTime) {
+void onButtonDownLightSelector(SeaRobSpringButton *button, long updateTime) {
   
   switch (bstate) {
     case BlinkState_Off:
       bstate = BlinkState_SyncBlink;
-      light_update_blink(&lightStation1, updateTime, 0, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStation1, LightState::UniformBlink);
-      light_update_blink(&lightStation2, updateTime, 0, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStation2, LightState::UniformBlink);
-      light_update_blink(&lightStorm1, updateTime, 0, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStorm1, LightState::UniformBlink);
-      light_update_blink(&lightStorm2, updateTime, 0, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStorm2, LightState::UniformBlink);
+      lightStation1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
+      lightStation1->UpdateState(SeaRobLight::LightState::UniformBlink);
+      
+      lightStation2->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
+      lightStation2->UpdateState(SeaRobLight::LightState::UniformBlink);
+      
+      lightStorm1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
+      lightStorm1->UpdateState(SeaRobLight::LightState::UniformBlink);
+      
+      lightStorm2->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
+      lightStorm2->UpdateState(SeaRobLight::LightState::UniformBlink);
       break;
       
     case BlinkState_SyncBlink:
       bstate = BlinkState_UnSyncBlink;
-      light_update_blink(&lightStation1, updateTime, 0, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStation1, LightState::UniformBlink);
-      light_update_blink(&lightStation2, updateTime, 125, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStation2, LightState::UniformBlink);
-      light_update_blink(&lightStorm1, updateTime, 250, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStorm1, LightState::UniformBlink);
-      light_update_blink(&lightStorm2, updateTime, 375, DURATION_ON, DURATION_OFF);
-      light_update_state(&lightStorm2, LightState::UniformBlink);
+      lightStation1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
+      lightStation1->UpdateState(SeaRobLight::LightState::UniformBlink);
+      lightStation2->UpdateBlinkConfig(updateTime, 125, DURATION_ON, DURATION_OFF);
+      lightStation2->UpdateState(SeaRobLight::LightState::UniformBlink);
+      lightStorm1->UpdateBlinkConfig(updateTime, 250, DURATION_ON, DURATION_OFF);
+      lightStorm1->UpdateState(SeaRobLight::LightState::UniformBlink);
+      lightStorm2->UpdateBlinkConfig(updateTime, 375, DURATION_ON, DURATION_OFF);
+      lightStorm2->UpdateState(SeaRobLight::LightState::UniformBlink);
       break;
       
     case BlinkState_UnSyncBlink:
       bstate = BlinkState_Off;
-      light_update_state(&lightStation1, LightState::Off);
-      light_update_state(&lightStation2, LightState::Off);
-      light_update_state(&lightStorm1, LightState::Off);
-      light_update_state(&lightStorm2, LightState::Off);
+      lightStation1->UpdateState(SeaRobLight::LightState::Off);
+      lightStation2->UpdateState(SeaRobLight::LightState::Off);
+      lightStorm1->UpdateState(SeaRobLight::LightState::Off);
+      lightStorm2->UpdateState(SeaRobLight::LightState::Off);
       break;
   }  
 
@@ -327,10 +303,10 @@ void setup() {
     motor_setup(&motorWindmill, "windmill", PIN_WINDMILL_MOTOR_IN1, PIN_WINDMILL_MOTOR_IN2, PIN_WINDMILL_MOTOR_ENB);
     windmillVelocity = motor_set_pulsewidth(&motorWindmill, windmillVelocity); // middle value.
     
-    springbutton_setup(&buttonWindmillPwr, "windmill power", PIN_WINDMILL_BUTTON_PWR, &onButtonDownWindmillPwr);
-    springbutton_setup(&buttonWindmillDir, "windmill direction", PIN_WINDMILL_BUTTON_DIR, &onButtonDownWindmillDir);
-    springbutton_setup(&buttonWindmillInc, "windmill speed inc", PIN_WINDMILL_BUTTON_INC, &onButtonDownWindmillInc);
-    springbutton_setup(&buttonWindmillDec, "windmill speed dec", PIN_WINDMILL_BUTTON_DEC, &onButtonDownWindmillDec);
+    buttonWindmillPwr = new SeaRobSpringButton("windmill power", PIN_WINDMILL_BUTTON_PWR, &onButtonDownWindmillPwr);
+    buttonWindmillDir = new SeaRobSpringButton("windmill direction", PIN_WINDMILL_BUTTON_DIR, &onButtonDownWindmillDir);
+    buttonWindmillInc = new SeaRobSpringButton("windmill speed inc", PIN_WINDMILL_BUTTON_INC, &onButtonDownWindmillInc);
+    buttonWindmillDec = new SeaRobSpringButton("windmill speed dec", PIN_WINDMILL_BUTTON_DEC, &onButtonDownWindmillDec);
 
     bclogger("setup: windmill complete, power=%d, dir=%d, v=%d", windmillPower, windmillDirection, windmillVelocity);
   }
@@ -341,10 +317,10 @@ void setup() {
     motor_setup(&motorTrain, "train", PIN_TRAIN_MOTOR_IN1, PIN_TRAIN_MOTOR_IN2, PIN_TRAIN_MOTOR_ENB);
     trainVelocity = motor_set_pulsewidth(&motorTrain, trainVelocity); // middle value.
     
-    springbutton_setup(&buttonTrainPwr, "train power", PIN_TRAIN_BUTTON_PWR, &onButtonDownTrainPwr);
-    springbutton_setup(&buttonTrainDir, "train direction", PIN_TRAIN_BUTTON_DIR, &onButtonDownTrainDir);
-    springbutton_setup(&buttonTrainInc, "train up", PIN_TRAIN_BUTTON_INC, &onButtonDownTrainInc);
-    springbutton_setup(&buttonTrainDec, "train down", PIN_TRAIN_BUTTON_DEC, &onButtonDownTrainDec);
+    buttonTrainPwr = new SeaRobSpringButton("train power", PIN_TRAIN_BUTTON_PWR, &onButtonDownTrainPwr);
+    buttonTrainDir = new SeaRobSpringButton("train direction", PIN_TRAIN_BUTTON_DIR, &onButtonDownTrainDir);
+    buttonTrainInc = new SeaRobSpringButton("train up", PIN_TRAIN_BUTTON_INC, &onButtonDownTrainInc);
+    buttonTrainDec = new SeaRobSpringButton("train down", PIN_TRAIN_BUTTON_DEC, &onButtonDownTrainDec);
     //sliderinput_setup(&sliderTrain, "train velocity", PIN_TRAIN_SLIDE, &onSliderChangeTrain);
 
     bclogger("setup: train complete, power=%d, dir=%d, v=%d", trainPower, trainDirection, trainVelocity);
@@ -353,34 +329,26 @@ void setup() {
   if (usePFLight) {
     bclogger("setup: pf-light start...");
     
-    light_setup(&lightStation1, PIN_PF_LIGHT_CTRL_1, LightState::Off, 0);
-    light_setup(&lightStation2, PIN_PF_LIGHT_CTRL_2, LightState::Off, 0);
-    light_setup(&lightBugle1, PIN_PF_LIGHT_CTRL_3, LightState::Off, 0);
-    light_setup(&lightStorm1, PIN_PF_LIGHT_CTRL_4, LightState::Off, 0);
-    light_setup(&lightStorm2, PIN_PF_LIGHT_CTRL_5, LightState::Off, 0);
+    lightStation1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_1);
+    lightStation2 = new SeaRobLight(PIN_PF_LIGHT_CTRL_2);
+    lightBugle1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_3);
+    lightStorm1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_4);
+    lightStorm2 = new SeaRobLight(PIN_PF_LIGHT_CTRL_5);
     
-    springbutton_setup(&buttonPFLight1, "pf-light station1", PIN_PF_LIGHT_BUTTON_1, &onButtonDownLightStation1);
-    springbutton_setup(&buttonPFLight2, "pf-light station2", PIN_PF_LIGHT_BUTTON_2, &onButtonDownLightStation2);
-    springbutton_setup(&buttonPFLight3, "pf-light bugle1", PIN_PF_LIGHT_BUTTON_3, &onButtonDownLightBugle1);
-    springbutton_setup(&buttonPFLight4, "pf-light storm1", PIN_PF_LIGHT_BUTTON_4, &onButtonDownLightStorm1);
-    springbutton_setup(&buttonPFLight5, "pf-light storm2", PIN_PF_LIGHT_BUTTON_5, &onButtonDownLightStorm2);
-    springbutton_setup(&buttonPFLight6, "pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
+    buttonPFLight1 = new SeaRobSpringButton("pf-light station1", PIN_PF_LIGHT_BUTTON_1, &onButtonDownLightStation1);
+    buttonPFLight2 = new SeaRobSpringButton("pf-light station2", PIN_PF_LIGHT_BUTTON_2, &onButtonDownLightStation2);
+    buttonPFLight3 = new SeaRobSpringButton("pf-light bugle1", PIN_PF_LIGHT_BUTTON_3, &onButtonDownLightBugle1);
+    buttonPFLight4 = new SeaRobSpringButton("pf-light storm1", PIN_PF_LIGHT_BUTTON_4, &onButtonDownLightStorm1);
+    buttonPFLight5 = new SeaRobSpringButton("pf-light storm2", PIN_PF_LIGHT_BUTTON_5, &onButtonDownLightStorm2);
+    
+    buttonPFLight6 = new SeaRobSpringButton("pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
 
     bclogger("setup: pf-light complete, mode=%d/%d/%d/%d/%d", 
-      lightStation1.state, lightStation2.state, lightBugle1.state, lightStorm1.state, lightStorm2.state);
+      lightStation1->GetStateName(), lightStation2->GetStateName(), 
+      lightBugle1->GetStateName(), 
+      lightStorm1->GetStateName(), lightStorm2->GetStateName());
   }
 
-  // TODO: move this to a different file.
-  if (useSlab1) {
-    monorail_system_setup(&monorail, MONORAIL_POLE_PIN_START_SLAB1);
-    springbutton_setup(&monorailButton, "monorail light control", PIN_MONORAIL_BUTTON, &onMonorailButtonDown);
-
-    light_setup(&caveLight, CAVE_LIGHT_PIN, LightState::Off, 0);
-    springbutton_setup(&caveButton, "cave light control", PIN_CAVE_BUTTON, &onCaveButtonDown);
-    
-    bclogger("setup: slab-1 complete.", 1);
-  }
-  
   // Init the rest of our internal state.
   bclogger("setup: complete for \"%s\"", buildName.c_str());
 }
@@ -397,10 +365,10 @@ void loop() {
 
   if (useWindmill) {
       // Process inputs first so they have immediate impact.
-      springbutton_loop(&buttonWindmillPwr, lastUpdateTime);
-      springbutton_loop(&buttonWindmillDir, lastUpdateTime);
-      springbutton_loop(&buttonWindmillInc, lastUpdateTime);
-      springbutton_loop(&buttonWindmillDec, lastUpdateTime);
+      buttonWindmillPwr->ProcessLoop(lastUpdateTime);
+      buttonWindmillDir->ProcessLoop(lastUpdateTime);
+      buttonWindmillInc->ProcessLoop(lastUpdateTime);
+      buttonWindmillDec->ProcessLoop(lastUpdateTime);
     
       // Increment the rest of the state machines.
       motor_loop(&motorWindmill, lastUpdateTime);
@@ -408,10 +376,10 @@ void loop() {
 
   if (useTrain) {
       // Process inputs first so they have immediate impact.
-      springbutton_loop(&buttonTrainPwr, lastUpdateTime);
-      springbutton_loop(&buttonTrainDir, lastUpdateTime);
-      springbutton_loop(&buttonTrainInc, lastUpdateTime);
-      springbutton_loop(&buttonTrainDec, lastUpdateTime);
+      buttonTrainPwr->ProcessLoop(lastUpdateTime);
+      buttonTrainDir->ProcessLoop(lastUpdateTime);
+      buttonTrainInc->ProcessLoop(lastUpdateTime);
+      buttonTrainDec->ProcessLoop(lastUpdateTime);
       //sliderinput_loop(&sliderTrain, lastUpdateTime);
 
       // Increment the rest of the state machines.
@@ -420,19 +388,19 @@ void loop() {
 
   if (usePFLight) {
       // Process inputs first so they have immediate impact.
-      springbutton_loop(&buttonPFLight1, lastUpdateTime);
-      springbutton_loop(&buttonPFLight2, lastUpdateTime);
-      springbutton_loop(&buttonPFLight3, lastUpdateTime);
-      springbutton_loop(&buttonPFLight4, lastUpdateTime);
-      springbutton_loop(&buttonPFLight5, lastUpdateTime);
-      springbutton_loop(&buttonPFLight6, lastUpdateTime);
+      buttonPFLight1->ProcessLoop(lastUpdateTime);
+      buttonPFLight2->ProcessLoop(lastUpdateTime);
+      buttonPFLight3->ProcessLoop(lastUpdateTime);
+      buttonPFLight4->ProcessLoop(lastUpdateTime);
+      buttonPFLight5->ProcessLoop(lastUpdateTime);
+      buttonPFLight6->ProcessLoop(lastUpdateTime);
 
       // Increment the rest of the state machines.
-      light_loop(&lightStation1, lastUpdateTime);
-      light_loop(&lightStation2, lastUpdateTime);
-      light_loop(&lightBugle1, lastUpdateTime);
-      light_loop(&lightStorm1, lastUpdateTime);
-      light_loop(&lightStorm2, lastUpdateTime);
+      lightStation1->ProcessLoop(lastUpdateTime);
+      lightStation2->ProcessLoop(lastUpdateTime);
+      lightBugle1->ProcessLoop(lastUpdateTime);
+      lightStorm1->ProcessLoop(lastUpdateTime);
+      lightStorm2->ProcessLoop(lastUpdateTime);
   }
 
   if (useDisplay) {
@@ -459,11 +427,11 @@ void loop() {
       // PF-Light monitoring
       char line4Buffer[50];
       snprintf(line4Buffer, 50, "lit: [%c%c][%c][%c%c]", 
-        light_ison(&lightStation1) ? '*' : ' ', 
-        light_ison(&lightStation2) ? '*' : ' ',
-        light_ison(&lightBugle1) ? '*' : ' ', 
-        light_ison(&lightStorm1) ? '*' : ' ',
-        light_ison(&lightStorm2) ? '*' : ' ');
+        lightStation1->IsOn() ? '*' : ' ', 
+        lightStation2->IsOn() ? '*' : ' ',
+        lightBugle1->IsOn() ? '*' : ' ', 
+        lightStorm1->IsOn() ? '*' : ' ',
+        lightStorm2->IsOn() ? '*' : ' ');
   
       // Send to the display.
       display.displayStandard(
@@ -472,17 +440,5 @@ void loop() {
         line2Buffer,
         line3Buffer, 
         line4Buffer);
-  }
-
-  // Process our input controls. 
-  // TODO: move this to another file.
-  if (useSlab1) {
-      // Process input first so they have immediate impact.
-      springbutton_loop(&monorailButton, lastUpdateTime);
-      springbutton_loop(&caveButton, lastUpdateTime);
-
-      // Increment the rest of the state machines.
-      monorail_system_loop(&monorail, lastUpdateTime);
-      light_loop(&caveLight, lastUpdateTime);
   }
 }

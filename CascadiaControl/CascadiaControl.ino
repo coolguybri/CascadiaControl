@@ -1,4 +1,12 @@
 // Import external libraries
+#include "MonorailSystem.h"
+
+// TODO: cascadia code; move to seperate file.
+#define PIN_MONORAIL_BUTTON     5
+#define PIN_CAVE_BUTTON         6
+#define MONORAIL_POLE_PIN_START_SLAB1     22
+#define CAVE_LIGHT_PIN                    52
+
 
 // Constants: Specific I/O Pins that must be used.
 #define PIN_SLAB6_STREETLIGHT_BUTTON     5
@@ -38,6 +46,28 @@ boolean           _streetLightButtonLevelCurr;
 boolean           _streetLightButtonLevelPrev;
 
 
+// Global Variables: old cascadia subsystem. TODO: move to new file.
+boolean useSlab1 =      false;
+MonorailSystem          monorail;
+SeaRobSpringButton *    monorailButton;
+SeaRobLight *           caveLight;
+SeaRobSpringButton *    caveButton;
+
+/*
+ * Cascadia callback.
+ */
+ 
+int onMonorailButtonDown(SeaRobSpringButton *button, long updateTime) {
+  bclogger("monorail light control: light mode toggle activated");
+  monorail_system_state_increment(&monorail, updateTime);
+}
+
+int onCaveButtonDown(SeaRobSpringButton *button, long updateTime) {
+  bclogger("cave light control: light mode toggle activated");
+  caveLight->ToggleOnOff();
+}
+
+
 /**
  * Entrypoint: called once when the program first starts, just to initialize all the sub-components.
  */
@@ -50,6 +80,16 @@ void setup() {
   Serial.begin(9600);
   Serial.println(F("setup: begin..."));
 
+  if (useSlab1) {
+    monorail_system_setup(&monorail, MONORAIL_POLE_PIN_START_SLAB1);
+    monorailButton = new SeaRobSpringButton("monorail light control", PIN_MONORAIL_BUTTON, &onMonorailButtonDown);
+
+    caveLight = new SeaRobLight(CAVE_LIGHT_PIN);
+    caveButton = new SeaRobSpringButton("cave light control", PIN_CAVE_BUTTON, &onCaveButtonDown);
+    
+    bclogger("setup: slab-1 complete.", 1);
+  }
+  
   if (useSlab6) {
     streetLightsSetup();
     Serial.println(F("setup: slab-6 complete..."));
@@ -75,6 +115,17 @@ void loop() {
   // Get the current time.
   unsigned long now = millis();
 
+  // Process our input controls. 
+  if (useSlab1) {
+      // Process input first so they have immediate impact.
+      monorailButton->ProcessLoop(lastUpdateTime);
+      caveButton->ProcessLoop(lastUpdateTime);
+
+      // Increment the rest of the state machines.
+      monorail_system_loop(&monorail, lastUpdateTime);
+      caveLight->ProcessLoop(lastUpdateTime);
+  }
+  
   // Process our input controls. 
   if (useSlab6) {
     streetLightsLoop(now);

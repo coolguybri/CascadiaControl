@@ -1,13 +1,13 @@
 #ifndef __Monorail_h__
 #define __Monorail_h__
 
-#include "Light.h"
+#include "SeaRobLight.h"
 
 #define MONORAIL_POLE_COUNT_SLAB1         7
 
 struct MonorailPole {
-  Light             _lightYellow;
-  Light             _lightOrange;
+  SeaRobLight *       _lightYellow;
+  SeaRobLight *       _lightOrange;
 
   unsigned long       blinkTime;
   bool                blinkState;
@@ -17,12 +17,12 @@ struct MonorailPole {
 
 
 struct MonorailSystem {
-    int               _pinStart;
+    int                       _pinStart;
     
-    LightState        _lightState;
-    unsigned long     _lightStateStartTime;
+    SeaRobLight::LightState   _lightState;
+    unsigned long             _lightStateStartTime;
     
-    MonorailPole      _poles_slab1[MONORAIL_POLE_COUNT_SLAB1];
+    MonorailPole              _poles_slab1[MONORAIL_POLE_COUNT_SLAB1];
 };
 
 

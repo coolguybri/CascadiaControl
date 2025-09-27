@@ -1,24 +1,34 @@
-#include "arduino.h"
+#include "Arduino.h"
 #include "MonorailSystem.h"
 
 #define BLINK_OFFSET 100
 
 
 /*
- * 
  */
-void monorail_pole_setup(MonorailPole *pole, int startPin, int offsetYellow, int offsetOrange, LightState lightState) {
-  light_setup(&pole->_lightYellow, startPin, lightState, offsetYellow);
-  light_setup(&pole->_lightOrange, startPin + 1, lightState, offsetOrange);
+void monorail_pole_setup(MonorailPole *pole, int startPin, int offsetYellow, int offsetOrange, SeaRobLight::LightState lstate) {
+  pole->_lightYellow = new SeaRobLight(startPin, offsetYellow);
+  pole->_lightYellow->UpdateState(lstate);
+  
+  pole->_lightOrange = new SeaRobLight(startPin + 1, offsetOrange);
+  pole->_lightOrange->UpdateState(lstate);
 }
 
+
+
+/*
+ */
+void monorail_pole_destroy(MonorailPole *pole) {
+  delete pole->_lightYellow;
+  delete pole->_lightOrange;
+}
 
 /*
  * 
  */
 void monorail_pole_loop(MonorailPole *pole, unsigned long updateTime) {
-  light_loop(&pole->_lightYellow, updateTime);
-  light_loop(&pole->_lightOrange, updateTime);
+  pole->_lightYellow->ProcessLoop(updateTime);
+  pole->_lightOrange->ProcessLoop(updateTime);
 }
 
 
@@ -27,11 +37,11 @@ void monorail_pole_loop(MonorailPole *pole, unsigned long updateTime) {
  */
 void monorail_system_setup(MonorailSystem *monorail, int startPin) {
   monorail->_pinStart = startPin;
-  monorail->_lightState = LightState::Off;
+  monorail->_lightState = SeaRobLight::LightState::Off;
   monorail->_lightStateStartTime = 0;
 
   for (int i = 0 ; i < MONORAIL_POLE_COUNT_SLAB1 ; i++) {
-    monorail_pole_setup(&(monorail->_poles_slab1[i]), monorail->_pinStart + (i * 2), 0, 0, LightState::Off);
+    monorail_pole_setup(&(monorail->_poles_slab1[i]), monorail->_pinStart + (i * 2), 0, 0, monorail->_lightState);
   }
 }
 
@@ -54,19 +64,19 @@ void monorail_system_state_increment(MonorailSystem *monorail, unsigned long upd
   int blinkOffset = 0;
   int blinkOffsetOrangeDelta = 0;
   switch (monorail->_lightState) {
-    case LightState::On:
+    case SeaRobLight::LightState::On:
       blinkOffset = BLINK_OFFSET;
       blinkOffsetOrangeDelta = 250;
-      monorail->_lightState = LightState::UniformBlink;
+      monorail->_lightState = SeaRobLight::LightState::UniformBlink;
       break;
       
-    case LightState::UniformBlink:
-      monorail->_lightState = LightState::Off;
+    case SeaRobLight::LightState::UniformBlink:
+      monorail->_lightState = SeaRobLight::LightState::Off;
       break;
       
-    case LightState::Off:
+    case SeaRobLight::LightState::Off:
     default:
-      monorail->_lightState = LightState::On;
+      monorail->_lightState = SeaRobLight::LightState::On;
       break;
   }
 

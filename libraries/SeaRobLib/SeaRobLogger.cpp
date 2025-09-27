@@ -1,11 +1,11 @@
-#include "arduino.h"
-#include "Logger.h"
+#include "Arduino.h"
+#include "SeaRobLogger.h"
 
 /*
  * Global log buffer.
  */
 #define LOGBUF_SIZE 500
-char logbuf[LOGBUF_SIZE];
+char logbuf[LOGBUF_SIZE + 1];
 
 
 /*
@@ -15,7 +15,7 @@ void bclogger(const char* fmt, ...) {
     va_list params;
     va_start(params, fmt);
 
-    vsnprintf(logbuf, 500, fmt, params);
+    vsnprintf(logbuf, LOGBUF_SIZE, fmt, params);
     Serial.println(logbuf);
 
     va_end(params);
