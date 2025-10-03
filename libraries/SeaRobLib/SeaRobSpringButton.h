@@ -16,7 +16,8 @@ typedef void (*onPressDown) (SeaRobSpringButton *button, long updateTime);
 */
 class SeaRobSpringButton {
   public:
-  				SeaRobSpringButton(String name, int pin, onPressDown downHandler, void *opaque = NULL);
+  				SeaRobSpringButton(String name, int pin, 
+  							onPressDown downHandler, void *opaque = NULL);
   				
   		void 	ProcessLoop(unsigned long updateTime);
   		void * 	GetOpaque() { return _opaque; }

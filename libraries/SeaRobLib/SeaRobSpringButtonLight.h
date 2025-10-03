@@ -18,7 +18,8 @@ typedef void (*onStateChange) (SeaRobSpringButtonLight *bl, long updateTime);
 class SeaRobSpringButtonLight {
 
   public:
-    		SeaRobSpringButtonLight(int uniqueId, int buttonPin, int ledPin, onStateChange stateChangeHandler);
+    		SeaRobSpringButtonLight(int uniqueId, int buttonPin, int ledPin, 
+    				onStateChange stateChangeHandler, void *opaque = NULL);
     		virtual ~SeaRobSpringButtonLight();
 
     void 	ProcessLoop(unsigned long updateTime);
@@ -26,15 +27,18 @@ class SeaRobSpringButtonLight {
      SeaRobLight *  GetLight() { return _light; }
      SeaRobSpringButton * GetButton() { return _button; }
      bool IsOn() { return _light->IsOn(); }
+     void *			GetOpaque() { return _opaque; }
 
   protected:
     void 	OnButtonDown(long updateTime);
     
   private:
-    int                   _label;
-    SeaRobLight *         _light;
-    SeaRobSpringButton *  _button;
-    onStateChange    	  _stateChangeHandler;
+    int                   	_label;
+    SeaRobLight *         	_light;
+    SeaRobSpringButton *  	_button;
+    
+    onStateChange    	  	_stateChangeHandler;
+    void *          		_opaque;
     
   protected:
 	static void StaticOnButtonDown(SeaRobSpringButton *button, long updateTime) {

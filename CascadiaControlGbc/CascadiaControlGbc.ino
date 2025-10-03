@@ -3,7 +3,7 @@
 #include "SeaRobLight.h"
 #include "SeaRobLogger.h"
 #include "SeaRobSpringButton.h"
-#include "SeaRobSpringButtonLight.h"
+#include "SeaRobSpringButtonLightList.h"
 
 // Constants: Specific I/O Pins that must be used.
 // Assumes the Arduino Mega 3560 R3 Board.
@@ -32,112 +32,13 @@ const char      buildDatestamp[] = __DATE__;
 boolean useDisplay = true; 
 SeaRobDisplay display(PIN_I2C_SDA, PIN_I2C_SCL);
 
+
 // Globals: PowerFunctions (PF) Lights
-
-typedef enum {
-  BlinkState_Off = 0,
-  BlinkState_ConstantOn,
-  BlinkState_SyncBlink,
-  BlinkState_UnSyncBlink,
-} BlinkState;
-
-#define MAX_LIGHTS 6
-#define DURATION_ON 500
-#define DURATION_OFF 1000
-
-boolean         		        usePFLight = true;
-SeaRobSpringButtonLight *   buttonLights[MAX_LIGHTS];
-SeaRobSpringButton *        buttonModeSelector = NULL;
-BlinkState      		        bstate;
+#define                         MAX_LIGHTS 6
+boolean         		            usePFLight = true;
+SeaRobSpringButtonLightList *   buttonLightList = NULL;
 
    
-/*
- * mode selector callbacks
- */
-
-void onButtonDownLightIndividual(SeaRobSpringButtonLight *bl, long updateTime) {
-  // Turn off any synchronized blinking if we are playing with individual buttons.
-  if (bstate != BlinkState_Off) {
-    bstate = BlinkState_Off;
-    handleStateChange(updateTime);
-  }
-}
-
-
-void onButtonDownLightSelector(SeaRobSpringButton *button, long updateTime) {
-
-  // Incrmement through the states.
-  switch (bstate) {
-    case BlinkState_Off:
-      bstate = BlinkState_ConstantOn;
-      break;
-
-    case BlinkState_ConstantOn:
-      bstate = BlinkState_SyncBlink;
-      break;
-      
-    case BlinkState_SyncBlink:
-      bstate = BlinkState_UnSyncBlink;
-      break;
-      
-    case BlinkState_UnSyncBlink:
-      bstate = BlinkState_Off;
-      break;
-  }  
-
-  handleStateChange(updateTime);
-}
-
-
-/*
- */
-void handleStateChange(long updateTime) {
-
-  // Setup new state.
-  switch (bstate) {
-    case BlinkState_SyncBlink:
-      for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-        SeaRobSpringButtonLight * bl = buttonLights[i];
-        bl->GetLight()->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-        bl->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
-      } 
-      break;
-      
-    case BlinkState_UnSyncBlink: {
-        int perLightDelay = 200;
-        int durationOn = 2000;
-        int durationOff = 500;
-        for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-          SeaRobSpringButtonLight * bl = buttonLights[i];
-          bl->GetLight()->UpdateBlinkConfig(updateTime, (i * perLightDelay), durationOn, durationOff);
-          bl->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
-        } 
-    }
-      break;
-      
-    case BlinkState_Off:
-      for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-        SeaRobSpringButtonLight * bl = buttonLights[i];
-        bl->GetLight()->UpdateState(SeaRobLight::LightState::Off);
-      } 
-      break;
-
-    case BlinkState_ConstantOn:
-      for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-        SeaRobSpringButtonLight * bl = buttonLights[i];
-        bl->GetLight()->UpdateState(SeaRobLight::LightState::On);
-      } 
-      break;
-
-    default:
-      bclogger("lightSelector: ERROR: undefined state: %d", bstate);
-      break;
-  }  
-
-  bclogger("lightSelector: now set to %d", bstate);
-}
-
-
 /*
  * Entrypoint: called once when the program first starts, just to initialize all the sub-components.
  */
@@ -160,25 +61,7 @@ void setup() {
 
   if (usePFLight) {
     bclogger("setup: pf-light starting with maxLights=%d", MAX_LIGHTS);
-
-    // Init the light array.
-    int startId = 1;
-    int startButtonPin = PIN_PF_LIGHT_BUTTON_1;
-    int startOutputPin = PIN_PF_LIGHT_CTRL_1;
-    for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-      SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(startId + i, startButtonPin + i, startOutputPin + i, onButtonDownLightIndividual);
-      buttonLights[i] = bl;
-    }
-
-    // Blink-mode selector button.
-    buttonModeSelector = new SeaRobSpringButton("pf-light selector", PIN_PF_LIGHT_MODE_SELECTOR, &onButtonDownLightSelector, NULL);
-
-    bclogger("setup: pf-light complete, mode=%d/%d/%d/%d/%d", 
-      buttonLights[0]->IsOn(), 
-      buttonLights[1]->IsOn(), 
-      buttonLights[2]->IsOn(), 
-      buttonLights[3]->IsOn(), 
-      buttonLights[4]->IsOn()); 
+	  buttonLightList = new SeaRobSpringButtonLightList(MAX_LIGHTS, PIN_PF_LIGHT_BUTTON_1, PIN_PF_LIGHT_CTRL_1, PIN_PF_LIGHT_MODE_SELECTOR);
   }
   
   bclogger("setup: complete for \"%s\"", buildName.c_str());
@@ -196,11 +79,7 @@ void loop() {
   //bclogger("loop: called with \"%00d\"", lastUpdateTime);
 
   if (usePFLight) {
-      buttonModeSelector->ProcessLoop(lastUpdateTime);
-    
-      for (int i = 0 ; i < MAX_LIGHTS ; i++) {
-        buttonLights[i]->ProcessLoop(lastUpdateTime);
-      }
+    buttonLightList->ProcessLoop(lastUpdateTime);
   } 
 
   if (useDisplay) {
@@ -222,16 +101,10 @@ void loop() {
 
       // PF-Light monitoring
       char line4Buffer[50];
-      snprintf(line4Buffer, 50, "lit: %c %c %c %c %c %c %c %c", 
-        buttonLights[0]->IsOn() ? '*' : '-', 
-        buttonLights[1]->IsOn() ? '*' : '-',
-        buttonLights[2]->IsOn() ? '*' : '-', 
-        buttonLights[3]->IsOn() ? '*' : '-',
-        buttonLights[4]->IsOn() ? '*' : '-', 
-        buttonLights[5]->IsOn() ? '*' : '-',
-        buttonLights[6]->IsOn() ? '*' : '-', 
-        buttonLights[7]->IsOn() ? '*' : '-');
-  
+      strcat(line4Buffer, "lit: ");
+      int litstrlen = strlen(line4Buffer);
+      buttonLightList->GetStatusString(line4Buffer + litstrlen, 50 - litstrlen);
+
       // Send to the display.
       display.displayStandard(
         headerBuffer,

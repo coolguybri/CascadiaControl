@@ -28,16 +28,16 @@ class SeaRobLight {
   		void		ProcessLoop(unsigned long updateTime);
   							
   private:
-	  const int        pin;
+	  const int        _pin;
 	  
-	  LightState       state;
-	  int              blinkOffset;
-	  int              blinkIntervalOn;
-	  int              blinkIntervalOff;
+	  LightState       _state;
+	  int              _blinkOffset;
+	  int              _blinkIntervalOn;
+	  int              _blinkIntervalOff;
 	
-	  unsigned long    blinkTimeNext;
-	  bool             litState;
-      bool             loggingState;
+	  unsigned long    _blinkTimeNext;
+	  bool             _litState;
+      bool             _loggingState;
 };
 
 #endif // __searob_light_h__

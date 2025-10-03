@@ -3,6 +3,7 @@
 #include "SeaRobLight.h"
 #include "SeaRobLogger.h"
 #include "SeaRobSpringButton.h"
+#include "SeaRobSpringButtonLightList.h"
 
 #include "MotorPCM.h"
 #include "SliderInput.h"
@@ -32,17 +33,9 @@
 #define PIN_TRAIN_SLIDER            A1 // Analog Pin, input (experimental)
 
 // Lego PowerFunctions Light Array
-#define PIN_PF_LIGHT_BUTTON_1       30 // Digital Pin, input
-#define PIN_PF_LIGHT_BUTTON_2       31 // Digital Pin, input
-#define PIN_PF_LIGHT_BUTTON_3       32 // Digital Pin, input
-#define PIN_PF_LIGHT_BUTTON_4       33 // Digital Pin, input
-#define PIN_PF_LIGHT_BUTTON_5       34 // Digital Pin, input
-#define PIN_PF_LIGHT_BUTTON_6       35 // Digital Pin, input
-#define PIN_PF_LIGHT_CTRL_1         40 // Digital Pin, output
-#define PIN_PF_LIGHT_CTRL_2         41 // Digital Pin, output
-#define PIN_PF_LIGHT_CTRL_3         44 // Digital Pin, output (switched with 42)
-#define PIN_PF_LIGHT_CTRL_4         43 // Digital Pin, output
-#define PIN_PF_LIGHT_CTRL_5         42 // Digital Pin, output (switched with 44)
+#define PIN_PF_LIGHT_BUTTON_1       30 // Digital Pin, input  [30-34]
+#define PIN_PF_LIGHT_CTRL_1         40 // Digital Pin, output [40-44]
+#define PIN_PF_LIGHT_MODE_SELECTOR  35 // Digital Pin, output [35]
 
 // LCD Display subsystem
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
@@ -88,18 +81,9 @@ SliderInput   sliderTrain;
 
 
 // Globals: PowerFunctions (PF) Lights
-boolean               usePFLight = true;
-SeaRobLight *         lightStation1;
-SeaRobLight *         lightStation2;
-SeaRobLight *         lightBugle1;
-SeaRobLight *         lightStorm1;
-SeaRobLight *         lightStorm2;
-SeaRobSpringButton *  buttonPFLight1;
-SeaRobSpringButton *  buttonPFLight2;
-SeaRobSpringButton *  buttonPFLight3;
-SeaRobSpringButton *  buttonPFLight4;
-SeaRobSpringButton *  buttonPFLight5;
-SeaRobSpringButton *  buttonPFLight6;
+#define                         MAX_LIGHTS 5
+boolean                         usePFLight = true;
+SeaRobSpringButtonLightList *   buttonLightList = NULL;
 
 
 /*
@@ -190,94 +174,6 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
 
 
 /*
- * pf-light button callbacks
- */
-
- typedef enum {
-  BlinkState_Off = 0,
-  BlinkState_SyncBlink,
-  BlinkState_UnSyncBlink,
-} BlinkState;
-
-BlinkState bstate;
- 
-void onButtonDownLightStation1(SeaRobSpringButton *button, long updateTime) {
-  lightStation1->ToggleOnOff();
-  bstate = BlinkState_Off;
-  bclogger("lightStation1: toggled to %d", lightStation1->GetStateName());
-}
-
-void onButtonDownLightStation2(SeaRobSpringButton *button, long updateTime) {
-  lightStation2->ToggleOnOff();
-  bstate = BlinkState_Off;
-  bclogger("lightStation2: toggled to %d", lightStation2->GetStateName());
-}
-
-void onButtonDownLightBugle1(SeaRobSpringButton *button, long updateTime) {
-  lightBugle1->ToggleOnOff();
-  bstate = BlinkState_Off;
-  bclogger("lightBugle1: toggled to %d", lightBugle1->GetStateName());
-}
-
-void onButtonDownLightStorm1(SeaRobSpringButton *button, long updateTime) {
-  lightStorm1->ToggleOnOff();
-  bstate = BlinkState_Off;
-  bclogger("lightStorm1: toggled to %d", lightStorm1->GetStateName());
-}
-
-void onButtonDownLightStorm2(SeaRobSpringButton *button, long updateTime) {
-  lightStorm2->ToggleOnOff();
-  bstate = BlinkState_Off;
-  bclogger("lightStorm2: toggled to %d", lightStorm2->GetStateName());
-}
-
-#define DURATION_ON 500
-#define DURATION_OFF 1000
-
-void onButtonDownLightSelector(SeaRobSpringButton *button, long updateTime) {
-  
-  switch (bstate) {
-    case BlinkState_Off:
-      bstate = BlinkState_SyncBlink;
-      lightStation1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-      lightStation1->UpdateState(SeaRobLight::LightState::UniformBlink);
-      
-      lightStation2->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-      lightStation2->UpdateState(SeaRobLight::LightState::UniformBlink);
-      
-      lightStorm1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-      lightStorm1->UpdateState(SeaRobLight::LightState::UniformBlink);
-      
-      lightStorm2->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-      lightStorm2->UpdateState(SeaRobLight::LightState::UniformBlink);
-      break;
-      
-    case BlinkState_SyncBlink:
-      bstate = BlinkState_UnSyncBlink;
-      lightStation1->UpdateBlinkConfig(updateTime, 0, DURATION_ON, DURATION_OFF);
-      lightStation1->UpdateState(SeaRobLight::LightState::UniformBlink);
-      lightStation2->UpdateBlinkConfig(updateTime, 125, DURATION_ON, DURATION_OFF);
-      lightStation2->UpdateState(SeaRobLight::LightState::UniformBlink);
-      lightStorm1->UpdateBlinkConfig(updateTime, 250, DURATION_ON, DURATION_OFF);
-      lightStorm1->UpdateState(SeaRobLight::LightState::UniformBlink);
-      lightStorm2->UpdateBlinkConfig(updateTime, 375, DURATION_ON, DURATION_OFF);
-      lightStorm2->UpdateState(SeaRobLight::LightState::UniformBlink);
-      break;
-      
-    case BlinkState_UnSyncBlink:
-      bstate = BlinkState_Off;
-      lightStation1->UpdateState(SeaRobLight::LightState::Off);
-      lightStation2->UpdateState(SeaRobLight::LightState::Off);
-      lightStorm1->UpdateState(SeaRobLight::LightState::Off);
-      lightStorm2->UpdateState(SeaRobLight::LightState::Off);
-      break;
-  }  
-
-  bclogger("lightSelector: now set to %d", bstate);
-}
-
-
-/*
  * Entrypoint: called once when the program first starts, just to initialize all the sub-components.
  */
 void setup() {  
@@ -327,26 +223,11 @@ void setup() {
   }
 
   if (usePFLight) {
-    bclogger("setup: pf-light start...");
-    
-    lightStation1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_1);
-    lightStation2 = new SeaRobLight(PIN_PF_LIGHT_CTRL_2);
-    lightBugle1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_3);
-    lightStorm1 = new SeaRobLight(PIN_PF_LIGHT_CTRL_4);
-    lightStorm2 = new SeaRobLight(PIN_PF_LIGHT_CTRL_5);
-    
-    buttonPFLight1 = new SeaRobSpringButton("pf-light station1", PIN_PF_LIGHT_BUTTON_1, &onButtonDownLightStation1);
-    buttonPFLight2 = new SeaRobSpringButton("pf-light station2", PIN_PF_LIGHT_BUTTON_2, &onButtonDownLightStation2);
-    buttonPFLight3 = new SeaRobSpringButton("pf-light bugle1", PIN_PF_LIGHT_BUTTON_3, &onButtonDownLightBugle1);
-    buttonPFLight4 = new SeaRobSpringButton("pf-light storm1", PIN_PF_LIGHT_BUTTON_4, &onButtonDownLightStorm1);
-    buttonPFLight5 = new SeaRobSpringButton("pf-light storm2", PIN_PF_LIGHT_BUTTON_5, &onButtonDownLightStorm2);
-    
-    buttonPFLight6 = new SeaRobSpringButton("pf-light selector", PIN_PF_LIGHT_BUTTON_6, &onButtonDownLightSelector);
+    bclogger("setup: pf-light starting with maxLights=%d", MAX_LIGHTS);
 
-    bclogger("setup: pf-light complete, mode=%d/%d/%d/%d/%d", 
-      lightStation1->GetStateName(), lightStation2->GetStateName(), 
-      lightBugle1->GetStateName(), 
-      lightStorm1->GetStateName(), lightStorm2->GetStateName());
+    int buttonPins[] = { 30, 31, 34, 33, 32};
+    int lightPins[] = { 40, 41, 44, 43, 42};
+    buttonLightList = new SeaRobSpringButtonLightList(MAX_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
   }
 
   // Init the rest of our internal state.
@@ -387,20 +268,7 @@ void loop() {
   }
 
   if (usePFLight) {
-      // Process inputs first so they have immediate impact.
-      buttonPFLight1->ProcessLoop(lastUpdateTime);
-      buttonPFLight2->ProcessLoop(lastUpdateTime);
-      buttonPFLight3->ProcessLoop(lastUpdateTime);
-      buttonPFLight4->ProcessLoop(lastUpdateTime);
-      buttonPFLight5->ProcessLoop(lastUpdateTime);
-      buttonPFLight6->ProcessLoop(lastUpdateTime);
-
-      // Increment the rest of the state machines.
-      lightStation1->ProcessLoop(lastUpdateTime);
-      lightStation2->ProcessLoop(lastUpdateTime);
-      lightBugle1->ProcessLoop(lastUpdateTime);
-      lightStorm1->ProcessLoop(lastUpdateTime);
-      lightStorm2->ProcessLoop(lastUpdateTime);
+      buttonLightList->ProcessLoop(lastUpdateTime);
   }
 
   if (useDisplay) {
@@ -426,12 +294,9 @@ void loop() {
 
       // PF-Light monitoring
       char line4Buffer[50];
-      snprintf(line4Buffer, 50, "lit: [%c%c][%c][%c%c]", 
-        lightStation1->IsOn() ? '*' : ' ', 
-        lightStation2->IsOn() ? '*' : ' ',
-        lightBugle1->IsOn() ? '*' : ' ', 
-        lightStorm1->IsOn() ? '*' : ' ',
-        lightStorm2->IsOn() ? '*' : ' ');
+      strcpy(line4Buffer, "lit: ");
+      int litstrlen = strlen(line4Buffer);
+      buttonLightList->GetStatusString(line4Buffer + litstrlen, 50 - litstrlen);
   
       // Send to the display.
       display.displayStandard(

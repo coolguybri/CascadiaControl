@@ -9,38 +9,35 @@
 
 /*
  */
-SeaRobLight::SeaRobLight(int p, int offset): pin(p) {
-  this->state = LightState::Off;
-  this->loggingState = false;
-  
-  // this->loggingState = true;
-  
-  this->blinkOffset = offset;
-  this->blinkIntervalOn = BLINK_INTERVAL_ON;
-  this->blinkIntervalOff = BLINK_INTERVAL_OFF;
-  this->litState = false;
-  this->blinkTimeNext = 0;
+SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
+  _state = LightState::Off;
+  _blinkOffset = offset;
+  _blinkIntervalOn = BLINK_INTERVAL_ON;
+  _blinkIntervalOff = BLINK_INTERVAL_OFF;
+  _blinkTimeNext = 0;
+  _litState = false;
+  _loggingState = false;
 
   unsigned long now = millis();
-  if (this->blinkOffset > 0) {
-    this->blinkTimeNext = (now + this->blinkOffset);
+  if (_blinkOffset > 0) {
+    _blinkTimeNext = (now + _blinkOffset);
   }
 
-  pinMode(this->pin, OUTPUT);
+  pinMode(_pin, OUTPUT);
  
   bclogger("SeaRobLight: pin=%d, state=%d, offset=%d, nextblink=%lu", 
-    this->pin, this->state, this->blinkOffset, this->blinkTimeNext);
+    _pin, _state, _blinkOffset, _blinkTimeNext);
 }
 
 
 /*
  */
 void SeaRobLight::SetDebugLogging(bool setter) {
-  bool prev = this->loggingState;
-  this->loggingState = setter;
+  bool prev = _loggingState;
+  _loggingState = setter;
 
-  if (this->loggingState != prev) {
-    bclogger("SeaRobLight: pin=%d, logging=%b", this->pin, this->loggingState);
+  if (_loggingState != prev) {
+    bclogger("SeaRobLight: pin=%d, logging=%b", _pin, _loggingState);
   }
 }
 
@@ -48,10 +45,10 @@ void SeaRobLight::SetDebugLogging(bool setter) {
 /*
  */
 void SeaRobLight::UpdateState(LightState state) {
-   this->state = state;
+   _state = state;
 
-   if (this->loggingState) {
-      bclogger("SeaRobLight::UpdateState: pin=%d, state=%d", this->pin, this->state);
+   if (_loggingState) {
+      bclogger("SeaRobLight::UpdateState: pin=%d, state=%d", _pin, _state);
    }
 }
 
@@ -59,14 +56,14 @@ void SeaRobLight::UpdateState(LightState state) {
 /*
  */
 void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff) {
-   this->blinkOffset = offset;
-   this->blinkIntervalOn = durationOn;
-   this->blinkIntervalOff = durationOff;
-   this->blinkTimeNext = startTime + this->blinkOffset;
+   _blinkOffset = offset;
+   _blinkIntervalOn = durationOn;
+   _blinkIntervalOff = durationOff;
+   _blinkTimeNext = startTime + _blinkOffset;
 
-   if (this->loggingState) {
+   if (_loggingState) {
      bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, offset=%d, startTime=%lu, nextblink=%lu, duration=%d/%d", 
-        this->pin, this->state, this->blinkOffset, startTime, this->blinkTimeNext, this->blinkIntervalOn, this->blinkIntervalOff);
+        _pin, _state, _blinkOffset, startTime, _blinkTimeNext, _blinkIntervalOn, _blinkIntervalOff);
    }
 }
 
@@ -74,25 +71,25 @@ void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int dur
 /*
  */
 void SeaRobLight::ToggleOnOff() {
-   switch (this->state) {
+   switch (_state) {
     case LightState::Off:
-      this->state = LightState::On;
+      _state = LightState::On;
       break;
       
     case LightState::On: 
-      this->state = LightState::Off;
+      _state = LightState::Off;
       break;
     
     default:
-      if (this->loggingState) {
-        bclogger("SeaRobLight::ToggleOnOff: pin=%d, jumping to off from %d", this->pin, this->state);
+      if (_loggingState) {
+        bclogger("SeaRobLight::ToggleOnOff: pin=%d, jumping to off from %d", _pin, _state);
       }
-      this->state = LightState::Off;
+      _state = LightState::Off;
       break;
    }
 
-   if (this->loggingState) {
-      bclogger("SeaRobLight::ToggleOnOff: pin=%d, state=%d", this->pin, this->state);
+   if (_loggingState) {
+      bclogger("SeaRobLight::ToggleOnOff: pin=%d, state=%d", _pin, _state);
    }
 }
 
@@ -100,14 +97,14 @@ void SeaRobLight::ToggleOnOff() {
 /* 
  */
 boolean SeaRobLight::IsOn() {
-  return this->litState;
+  return _litState;
 }
 
 
 /*
  */
 String SeaRobLight::GetStateName() {
-  switch (this->state) {
+  switch (_state) {
     case LightState::Off:
       return "off";
       
@@ -118,7 +115,7 @@ String SeaRobLight::GetStateName() {
       return "blink";
     
     default:
-      bclogger("SeaRobLight::GetStateName: pin=%d, ILLEGAL STATE CHANGE", this->pin);
+      bclogger("SeaRobLight::GetStateName: pin=%d, ILLEGAL STATE CHANGE", _pin);
       return "illegal-state";
    }
 }
@@ -127,31 +124,31 @@ String SeaRobLight::GetStateName() {
 /*
  */
 void SeaRobLight::ProcessLoop(unsigned long updateTime) {
-  switch (this->state) {
+  switch (_state) {
     case LightState::Off:
-      this->litState = false;
+      _litState = false;
       break;
       
     case LightState::On: 
-      this->litState = true;
+      _litState = true;
       break;
     
     case LightState::UniformBlink:
-      if (updateTime >= this->blinkTimeNext) {
-          unsigned long thisTime = this->blinkTimeNext;
+      if (updateTime >= _blinkTimeNext) {
+          unsigned long thisTime = _blinkTimeNext;
           
-          int nextDuration = this->litState ? this->blinkIntervalOn : this->blinkIntervalOff;
-          this->litState = !this->litState;
-          this->blinkTimeNext = this->blinkTimeNext + nextDuration;
+          int nextDuration = _litState ? _blinkIntervalOn : _blinkIntervalOff;
+          _litState = !_litState;
+          _blinkTimeNext = _blinkTimeNext + nextDuration;
           
-          if (this->loggingState) {
+          if (_loggingState) {
               bclogger("light_loop: pin=%d, state=%d, offset=%d, nextDur=%d, thisblink=%lu, nextblink=%lu, update=%lu", 
-                this->pin, this->state, this->blinkOffset, nextDuration, thisTime, this->blinkTimeNext, updateTime);
+                _pin, _state, _blinkOffset, nextDuration, thisTime, _blinkTimeNext, updateTime);
           }
       }
       break;
   }
 
   // Write out current state to the led.
-  digitalWrite(this->pin, this->litState);
+  digitalWrite(_pin, _litState);
 }
