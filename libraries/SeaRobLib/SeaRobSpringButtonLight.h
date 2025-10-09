@@ -3,6 +3,7 @@
 
 #include "SeaRobSpringButton.h"
 #include "SeaRobLight.h"
+#include "SeaRobObject.h"
 
 
 /*
@@ -15,14 +16,14 @@ typedef void (*onStateChange) (SeaRobSpringButtonLight *bl, long updateTime);
 /*
 	Represents the pairing of one button to one LED; the button will auto switch it on and off.
 */
-class SeaRobSpringButtonLight {
+class SeaRobSpringButtonLight : public SeaRobObject {
 
   public:
     		SeaRobSpringButtonLight(int uniqueId, int buttonPin, int ledPin, 
     				onStateChange stateChangeHandler, void *opaque = NULL);
     		virtual ~SeaRobSpringButtonLight();
 
-    void 	ProcessLoop(unsigned long updateTime);
+    virtual void 	ProcessLoop(unsigned long updateTime);
     
      SeaRobLight *  GetLight() { return _light; }
      SeaRobSpringButton * GetButton() { return _button; }

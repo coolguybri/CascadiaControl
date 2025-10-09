@@ -1,6 +1,7 @@
 #ifndef __searob_springbutton_h__
 #define __searob_springbutton_h__
 
+#include "SeaRobObject.h"
 
 /*
 	Callback prototype for events triggered by the detected button press.
@@ -14,12 +15,12 @@ typedef void (*onPressDown) (SeaRobSpringButton *button, long updateTime);
 	The physical button pops back up with a spring when released.
 	Requires one input pin per button.
 */
-class SeaRobSpringButton {
+class SeaRobSpringButton : public SeaRobObject {
   public:
   				SeaRobSpringButton(String name, int pin, 
   							onPressDown downHandler, void *opaque = NULL);
   				
-  		void 	ProcessLoop(unsigned long updateTime);
+  		virtual void 	ProcessLoop(unsigned long updateTime);
   		void * 	GetOpaque() { return _opaque; }
   		
   private:

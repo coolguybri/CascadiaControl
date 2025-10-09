@@ -225,7 +225,7 @@ void setup() {
   if (usePFLight) {
     bclogger("setup: pf-light starting with maxLights=%d", MAX_LIGHTS);
 
-    int buttonPins[] = { 30, 31, 34, 33, 32};
+    int buttonPins[] = { 30, 31, 32, 33, 34};
     int lightPins[] = { 40, 41, 44, 43, 42};
     buttonLightList = new SeaRobSpringButtonLightList(MAX_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
   }

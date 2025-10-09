@@ -1,11 +1,13 @@
 #ifndef __searob_light_h__
 #define __searob_light_h__
 
+#include "SeaRobObject.h"
+
 /*
  * Represents one led that can be either on or off. One output pin is required per light. 
  *  It can be set to blink overtime, or just stay in its current state until set again.
  */
-class SeaRobLight {
+class SeaRobLight : public SeaRobObject {
 
   public:
   	typedef enum {
@@ -25,7 +27,7 @@ class SeaRobLight {
   		bool		IsOn();
   		String		GetStateName();
   					
-  		void		ProcessLoop(unsigned long updateTime);
+  		virtual void	ProcessLoop(unsigned long updateTime);
   							
   private:
 	  const int        _pin;

@@ -2,12 +2,13 @@
 #define __searob_springbuttonlightlist_h__
 
 #include "SeaRobSpringButtonLight.h"
+#include "SeaRobObject.h"
 
 
 /*
 	Represents the pairing of one button to one LED; the button will auto switch it on and off.
 */
-class SeaRobSpringButtonLightList {
+class SeaRobSpringButtonLightList :  public SeaRobObject {
 
   public:
 	typedef enum {
@@ -23,7 +24,7 @@ class SeaRobSpringButtonLightList {
     		SeaRobSpringButtonLightList(int numLights, int* buttonPins, int* lightPins, int selectorButtonPin);
     		virtual ~SeaRobSpringButtonLightList();
 
-    void 	ProcessLoop(unsigned long updateTime);
+    virtual void 	ProcessLoop(unsigned long updateTime);
     void	GetStatusString(char *buf, int buflen);
     
   protected:
