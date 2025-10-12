@@ -55,11 +55,12 @@ void SeaRobLight::UpdateState(LightState state) {
 
 /*
  */
-void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff) {
+void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn) {
    _blinkOffset = offset;
    _blinkIntervalOn = durationOn;
    _blinkIntervalOff = durationOff;
    _blinkTimeNext = startTime + _blinkOffset;
+   _litState = startOn;
 
    if (_loggingState) {
      bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, offset=%d, startTime=%lu, nextblink=%lu, duration=%d/%d", 
@@ -137,8 +138,9 @@ void SeaRobLight::ProcessLoop(unsigned long updateTime) {
       if (updateTime >= _blinkTimeNext) {
           unsigned long thisTime = _blinkTimeNext;
           
-          int nextDuration = _litState ? _blinkIntervalOn : _blinkIntervalOff;
           _litState = !_litState;
+          
+          int nextDuration = _litState ? _blinkIntervalOn : _blinkIntervalOff;
           _blinkTimeNext = _blinkTimeNext + nextDuration;
           
           if (_loggingState) {

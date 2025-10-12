@@ -14,18 +14,24 @@ class SeaRobSpringButtonLightList :  public SeaRobObject {
 	typedef enum {
 	  BlinkState_Off = 0,
 	  BlinkState_ConstantOn,
-	  BlinkState_SyncBlink,
-	  BlinkState_UnSyncBlink,
-	  BlinkState_UnSyncBlinkSlow,
+	  
+	  BlinkState_SyncBlinkShort,
+	  BlinkState_SyncBlinkLong,
+	  
+	  BlinkState_SingleUni,
+	  BlinkState_SingleUniSlow,
+	  BlinkState_SingleUniInverse,
+	
+	  BlinkState_CylonEye,
 	} BlinkState;
 
   public:
     		SeaRobSpringButtonLightList(int numLights, int startButtonPin, int startLightPin, int selectorButtonPin);
     		SeaRobSpringButtonLightList(int numLights, int* buttonPins, int* lightPins, int selectorButtonPin);
-    		virtual ~SeaRobSpringButtonLightList();
+    virtual ~SeaRobSpringButtonLightList();
 
     virtual void 	ProcessLoop(unsigned long updateTime);
-    void	GetStatusString(char *buf, int buflen);
+    void			GetStatusString(char *buf, int buflen);
     
   protected:
 	  void OnButtonDownLightSelector(long updateTime);

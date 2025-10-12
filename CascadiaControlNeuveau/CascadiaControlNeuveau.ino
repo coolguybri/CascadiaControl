@@ -285,12 +285,12 @@ void loop() {
       // Windmill monitoring.
       char line2Buffer[50];
       snprintf(line2Buffer, 50, "wml: [%c] %s %03d %d%%", 
-        windmillPower ? '*' : ' ', windmillDirection ? "<-" : "->", windmillVelocity, (windmillVelocity * 100) / 255);
+          windmillPower ? '*' : ' ', windmillDirection ? "<-" : "->", windmillVelocity, (windmillVelocity * 100) / 255);
 
       // Train monitoring
       char line3Buffer[50];
       snprintf(line3Buffer, 50, "trn: [%c] %s %03d %d%%", 
-        trainPower ? '*' : ' ', trainDirection ? "<-" : "->", trainVelocity, (trainVelocity * 100) / 255);
+          trainPower ? '*' : ' ', trainDirection ? "<-" : "->", trainVelocity, (trainVelocity * 100) / 255);
 
       // PF-Light monitoring
       char line4Buffer[50];
