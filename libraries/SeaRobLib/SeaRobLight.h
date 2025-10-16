@@ -18,9 +18,13 @@ class SeaRobLight : public SeaRobObject {
 
   public:
   					SeaRobLight(int pin, int offset=0);
+  			virtual ~SeaRobLight();
   					
   		void		UpdateState(LightState state);
+  		
   		void		UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn = false);
+  		void		UpdateBlinkConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn = false);
+  		
   		void		ToggleOnOff();
       	void    	SetDebugLogging(bool setter);
   					
@@ -30,16 +34,17 @@ class SeaRobLight : public SeaRobObject {
   		virtual void	ProcessLoop(unsigned long updateTime);
   							
   private:
-	  const int        _pin;
+	  const int        	_pin;
 	  
-	  LightState       _state;
-	  int              _blinkOffset;
-	  int              _blinkIntervalOn;
-	  int              _blinkIntervalOff;
-	
-	  unsigned long    _blinkTimeNext;
-	  bool             _litState;
-      bool             _loggingState;
+	  LightState       	_state;
+	  int              	_blinkOffset;
+	  int				_blinkDurationCount;
+	  int				_blinkDurationIndex;
+	  int *				_blinkDurations;
+	  unsigned long    	_blinkTimeNext;
+	  
+	  bool             	_litState;
+      bool             	_loggingState;
 };
 
 #endif // __searob_light_h__

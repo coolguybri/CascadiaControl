@@ -3,17 +3,14 @@
 #include "SeaRobLogger.h"
 
 
-#define BLINK_INTERVAL_ON 2000
-#define BLINK_INTERVAL_OFF 250
-
-
 /*
  */
 SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
   _state = LightState::Off;
   _blinkOffset = offset;
-  _blinkIntervalOn = BLINK_INTERVAL_ON;
-  _blinkIntervalOff = BLINK_INTERVAL_OFF;
+  _blinkDurationCount = 0;
+  _blinkDurationIndex = 0;
+  _blinkDurations = NULL;
   _blinkTimeNext = 0;
   _litState = false;
   _loggingState = false;
@@ -29,6 +26,12 @@ SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
     _pin, _state, _blinkOffset, _blinkTimeNext);
 }
 
+
+/*
+ */
+SeaRobLight::~SeaRobLight() {
+	delete[] _blinkDurations;
+}
 
 /*
  */
@@ -56,17 +59,36 @@ void SeaRobLight::UpdateState(LightState state) {
 /*
  */
 void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn) {
-   _blinkOffset = offset;
-   _blinkIntervalOn = durationOn;
-   _blinkIntervalOff = durationOff;
-   _blinkTimeNext = startTime + _blinkOffset;
-   _litState = startOn;
-
-   if (_loggingState) {
-     bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, offset=%d, startTime=%lu, nextblink=%lu, duration=%d/%d", 
-        _pin, _state, _blinkOffset, startTime, _blinkTimeNext, _blinkIntervalOn, _blinkIntervalOff);
-   }
+	int* durations = new int[2] { durationOn, durationOff };
+	UpdateBlinkConfig(startTime, offset, 2, durations, startOn);
 }
+
+
+void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn) {
+	// Set initial state.
+	_blinkOffset = offset;
+	_blinkTimeNext = startTime + _blinkOffset;
+	_litState = startOn;
+	
+	// Setup the blink state, deleting any previous state.
+	if (_blinkDurations) {
+		delete[] _blinkDurations;
+		_blinkDurations = NULL;
+	}
+	
+	_blinkDurationCount = durationCount;
+	_blinkDurationIndex = 0;
+	_blinkDurations = new int[durationCount];
+	for (int i = 0 ; i < _blinkDurationCount ; i++) {
+		_blinkDurations[i] = durations[i];
+	}
+	
+	if (_loggingState) {
+		bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, offset=%d, startTime=%lu, nextblink=%lu, durations=%d", 
+			_pin, _state, _blinkOffset, startTime, _blinkTimeNext, _blinkDurationCount);
+	}
+}
+
 
 
 /*
@@ -127,27 +149,36 @@ String SeaRobLight::GetStateName() {
 void SeaRobLight::ProcessLoop(unsigned long updateTime) {
   switch (_state) {
     case LightState::Off:
-      _litState = false;
-      break;
+		_litState = false;
+		break;
       
     case LightState::On: 
-      _litState = true;
-      break;
+		_litState = true;
+		break;
     
     case LightState::UniformBlink:
-      if (updateTime >= _blinkTimeNext) {
-          unsigned long thisTime = _blinkTimeNext;
-          
-          _litState = !_litState;
-          
-          int nextDuration = _litState ? _blinkIntervalOn : _blinkIntervalOff;
-          _blinkTimeNext = _blinkTimeNext + nextDuration;
-          
-          if (_loggingState) {
-              bclogger("light_loop: pin=%d, state=%d, offset=%d, nextDur=%d, thisblink=%lu, nextblink=%lu, update=%lu", 
-                _pin, _state, _blinkOffset, nextDuration, thisTime, _blinkTimeNext, updateTime);
-          }
-      }
+		if (updateTime >= _blinkTimeNext) {
+			unsigned long thisTime = _blinkTimeNext;
+		
+			_litState = !_litState;
+		
+			int nextDuration = 1000;
+			if (!_blinkDurations) {
+				bclogger("light_loop: pin=%d, state=%d, ILLEGAL STATE - no durations", _pin, _state);
+			} else {
+				nextDuration = _blinkDurations[_blinkDurationIndex];
+				_blinkDurationIndex++;
+				if (_blinkDurationIndex >= _blinkDurationCount)
+					_blinkDurationIndex = 0;
+			}
+		
+		_blinkTimeNext = _blinkTimeNext + nextDuration;
+		
+		if (_loggingState) {
+			bclogger("light_loop: pin=%d, state=%d, offset=%d, nextDur=%d, thisblink=%lu, nextblink=%lu, update=%lu", 
+			_pin, _state, _blinkOffset, nextDuration, thisTime, _blinkTimeNext, updateTime);
+		}
+	  }
       break;
   }
 
