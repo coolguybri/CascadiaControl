@@ -245,17 +245,49 @@ void SeaRobSpringButtonLightList::HandleStateChange(long updateTime) {
       break;
       
 	case BlinkState_CylonEye: {
-		int frameTime = 1000;
+		// frameDuration is how log one frame of animation is.
+		int frameDuration = 500;
+		// frameCount is how many frames each light gets in the animation sequence.
+		// 1 of the frames will be the light blinking on, the rest will be blanks before the next light.
+		int frameCount = 2;
+		// totalFrames = slots/frames until animation repeats; every light is repeated twice,
+		// except for the two on the ends, which only get one. The -1 is the subtraction those two halves.
+		int totalFrames = (_numLights - 1) * frameCount * 2;
 	
 		for (int i = 0 ; i < _numLights ; i++) {
 			SeaRobSpringButtonLight * bl = _buttonLights[i];
 			
-			int delay = (i * 2) * frameTime;
-			int durationOn = frameTime;
-			int durationOff = ((_numLights * 2) - 1) * frameTime;
-			bl->GetLight()->UpdateBlinkConfig(updateTime, delay, durationOn, durationOff);
-			bl->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
-		} 
+			int delay = (i * 2);
+			
+			if ((i == 0) || (i == (_numLights - 1))) {
+				// first and last lights only blink once per cycle
+				int durationOn = 1;
+				int durationOff = (totalFrames - 1);
+				bclogger("CylonEye setup: hitting edge case, i=%d: totalFrames=%d, delay=%d, on=%d, off=%d", 
+					i, totalFrames, delay, durationOn, durationOff);
+
+				bl->GetLight()->UpdateBlinkConfig(updateTime, (delay * frameDuration), (durationOn * frameDuration), 
+					(durationOff * frameDuration));
+				bl->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
+			} else {
+				int durationOn = 1;
+				
+				int distanceToEnd = _numLights - (i + 1);
+				int lightsTilBackFromEnd = (distanceToEnd * 2) - 1;
+				int firstDelayFrames = ((lightsTilBackFromEnd * frameCount) + (frameCount - 1));
+				
+				int distanceToFront = i;
+				int lightsTilBackFromFront = (distanceToFront * 2) - 1;
+				int secondDelayFrames = ((lightsTilBackFromFront * frameCount) + (frameCount - 1)); 
+				bclogger("CylonEye setup: hitting middle case, i=%d: totalFrames=%d, delay=%d, pattern=%d,%d,%d,%d", 
+					i, totalFrames, delay, durationOn, firstDelayFrames, durationOn, secondDelayFrames);
+				
+				int blinkSequence[4] = { (durationOn * frameDuration), (firstDelayFrames * frameDuration), 
+					(durationOn * frameDuration), (secondDelayFrames * frameDuration) };
+				bl->GetLight()->UpdateBlinkSequenceConfig(updateTime, (delay * frameDuration), 4, blinkSequence, false);
+				bl->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
+			}	
+		}  
 	  }
 	  break;
 

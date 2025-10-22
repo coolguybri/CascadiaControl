@@ -23,7 +23,7 @@ class SeaRobLight : public SeaRobObject {
   		void		UpdateState(LightState state);
   		
   		void		UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn = false);
-  		void		UpdateBlinkConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn = false);
+  		void		UpdateBlinkSequenceConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn = false);
   		
   		void		ToggleOnOff();
       	void    	SetDebugLogging(bool setter);

@@ -59,12 +59,12 @@ void SeaRobLight::UpdateState(LightState state) {
 /*
  */
 void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn) {
-	int* durations = new int[2] { durationOn, durationOff };
-	UpdateBlinkConfig(startTime, offset, 2, durations, startOn);
+	int durations[2] = { durationOn, durationOff };
+	UpdateBlinkSequenceConfig(startTime, offset, 2, durations, startOn);
 }
 
 
-void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn) {
+void SeaRobLight::UpdateBlinkSequenceConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn) {
 	// Set initial state.
 	_blinkOffset = offset;
 	_blinkTimeNext = startTime + _blinkOffset;
@@ -81,11 +81,15 @@ void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int dur
 	_blinkDurations = new int[durationCount];
 	for (int i = 0 ; i < _blinkDurationCount ; i++) {
 		_blinkDurations[i] = durations[i];
+		if (_loggingState) {
+			bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, durations_index=%d, duration=%d", 
+				_pin, _state, i, _blinkDurations[i]);
+		}
 	}
 	
 	if (_loggingState) {
-		bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, offset=%d, startTime=%lu, nextblink=%lu, durations=%d", 
-			_pin, _state, _blinkOffset, startTime, _blinkTimeNext, _blinkDurationCount);
+		bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, durations=%d, offset=%d, startTime=%lu, nextblink=%lu", 
+			_pin, _state, _blinkDurationCount, _blinkOffset, startTime, _blinkTimeNext);
 	}
 }
 
@@ -167,16 +171,24 @@ void SeaRobLight::ProcessLoop(unsigned long updateTime) {
 				bclogger("light_loop: pin=%d, state=%d, ILLEGAL STATE - no durations", _pin, _state);
 			} else {
 				nextDuration = _blinkDurations[_blinkDurationIndex];
+				if (_loggingState) {
+					bclogger("light_loop: duration index %d = %d", _blinkDurationIndex, nextDuration);
+				}
+
 				_blinkDurationIndex++;
 				if (_blinkDurationIndex >= _blinkDurationCount)
 					_blinkDurationIndex = 0;
+					
+				if (_loggingState) {
+					bclogger("light_loop: next index is %d", _blinkDurationIndex);
+				}
 			}
 		
 		_blinkTimeNext = _blinkTimeNext + nextDuration;
 		
 		if (_loggingState) {
-			bclogger("light_loop: pin=%d, state=%d, offset=%d, nextDur=%d, thisblink=%lu, nextblink=%lu, update=%lu", 
-			_pin, _state, _blinkOffset, nextDuration, thisTime, _blinkTimeNext, updateTime);
+			bclogger("light_loop: update=%lu, pin=%d, state=%d, nextDur=%d, thisFrameStart=%lu, nextFrameStart=%lu", 
+				updateTime, _pin, _state, nextDuration, thisTime, _blinkTimeNext);
 		}
 	  }
       break;
