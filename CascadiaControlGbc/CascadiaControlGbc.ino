@@ -86,7 +86,7 @@ void loop() {
       // Update the OLED screen with our current state.
 
       char headerBuffer[50];
-      snprintf(headerBuffer, 50, "connolly brother ctrl");
+      snprintf(headerBuffer, 50, "connolly light ctrl");
       
       // Format the Uptime.
       int upSecs = (lastUpdateTime - startTime) / 1000;
