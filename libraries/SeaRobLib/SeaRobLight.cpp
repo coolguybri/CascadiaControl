@@ -22,8 +22,8 @@ SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
 
   pinMode(_pin, OUTPUT);
  
-  bclogger("SeaRobLight: pin=%d, state=%d, offset=%d, nextblink=%lu", 
-    _pin, _state, _blinkOffset, _blinkTimeNext);
+  bclogger("SeaRobLight (%d): pin=%d, state=%d, offset=%d, nextblink=%lu", 
+    _objId, _pin, _state, _blinkOffset, _blinkTimeNext);
 }
 
 
@@ -88,8 +88,8 @@ void SeaRobLight::UpdateBlinkSequenceConfig(unsigned long startTime, int offset,
 	}
 	
 	if (_loggingState) {
-		bclogger("SeaRobLight::UpdateBlinkConfig: pin=%d, state=%d, durations=%d, offset=%d, startTime=%lu, nextblink=%lu", 
-			_pin, _state, _blinkDurationCount, _blinkOffset, startTime, _blinkTimeNext);
+		bclogger("SeaRobLight::UpdateBlinkConfig (%d): pin=%d, state=%d, durations=%d, offset=%d, startTime=%lu, nextblink=%lu", 
+			_objId, _pin, _state, _blinkDurationCount, _blinkOffset, startTime, _blinkTimeNext);
 	}
 }
 
@@ -101,10 +101,12 @@ void SeaRobLight::ToggleOnOff() {
    switch (_state) {
     case LightState::Off:
       _state = LightState::On;
+      _litState = true;
       break;
       
     case LightState::On: 
       _state = LightState::Off;
+      _litState = false;
       break;
     
     default:
@@ -112,11 +114,12 @@ void SeaRobLight::ToggleOnOff() {
         bclogger("SeaRobLight::ToggleOnOff: pin=%d, jumping to off from %d", _pin, _state);
       }
       _state = LightState::Off;
+      _litState = false;
       break;
    }
 
    if (_loggingState) {
-      bclogger("SeaRobLight::ToggleOnOff: pin=%d, state=%d", _pin, _state);
+      bclogger("SeaRobLight::ToggleOnOff (%d): pin=%d, state=%d, litState=%d", _objId, _pin, _state, _litState);
    }
 }
 

@@ -21,7 +21,7 @@ class SeaRobSpringButton : public SeaRobObject {
   							onPressDown downHandler, void *opaque = NULL);
   				
   		virtual void 	ProcessLoop(unsigned long updateTime);
-  		void * 	GetOpaque() { return _opaque; }
+  		void * 			GetOpaque() { return _opaque; }
   		
   private:
 	  String          _name;

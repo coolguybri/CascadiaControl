@@ -26,9 +26,11 @@ class SeaRobSpringButtonLightList :  public SeaRobObject {
 	} BlinkState;
 
   public:
-    		SeaRobSpringButtonLightList(int numLights, int startButtonPin, int startLightPin, int selectorButtonPin);
-    		SeaRobSpringButtonLightList(int numLights, int* buttonPins, int* lightPins, int selectorButtonPin);
-    virtual ~SeaRobSpringButtonLightList();
+    				SeaRobSpringButtonLightList(String name, int numLights, int startButtonPin, 
+    					int startLightPin, int selectorButtonPin);
+    				SeaRobSpringButtonLightList(String name, int numLights, int* buttonPins, 
+    					int* lightPins, int selectorButtonPin);
+    	virtual 	~SeaRobSpringButtonLightList();
 
     virtual void 	ProcessLoop(unsigned long updateTime);
     void			GetStatusString(char *buf, int buflen);

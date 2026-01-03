@@ -80,10 +80,17 @@ SeaRobSpringButton *  buttonTrainDec;
 SliderInput   sliderTrain;
 
 
-// Globals: PowerFunctions (PF) Lights
+// Globals: PowerFunctions (PF) Lights (9 volts, turned on via transistor)
 #define                         MAX_LIGHTS 5
 boolean                         usePFLight = true;
 SeaRobSpringButtonLightList *   buttonLightList = NULL;
+
+
+// Globals: LightMyBricks 5-volt lights
+boolean                     useFrontLights = true;
+SeaRobSpringButtonLight *   frontLights = NULL;
+SeaRobSpringButtonLight *   stormLights1 = NULL;
+SeaRobSpringButtonLight *   stormLights2 = NULL;
 
 
 /*
@@ -169,9 +176,17 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
   bclogger("train velocity: set to %d", newValue);
 
   // TODO: This doesnt work yet.
-  // Translate from 104 ratio to 2256 raio. Store as float?
+  // Translate from 1024 ratio to 256 ratio. Store as float?
 }
 
+
+/*
+ * 5v light callbacks
+ */
+    
+void onButtonDownFront5vLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
+  // bclogger("onButtonDownFront5vLight");
+}
 
 /*
  * Entrypoint: called once when the program first starts, just to initialize all the sub-components.
@@ -204,7 +219,7 @@ void setup() {
     buttonWindmillInc = new SeaRobSpringButton("windmill speed inc", PIN_WINDMILL_BUTTON_INC, &onButtonDownWindmillInc);
     buttonWindmillDec = new SeaRobSpringButton("windmill speed dec", PIN_WINDMILL_BUTTON_DEC, &onButtonDownWindmillDec);
 
-    bclogger("setup: windmill complete, power=%d, dir=%d, v=%d", windmillPower, windmillDirection, windmillVelocity);
+    bclogger("setup: windmill complete, power=%d, dir=%d, speed=%d/255", windmillPower, windmillDirection, windmillVelocity);
   }
 
   if (useTrain) {
@@ -219,7 +234,7 @@ void setup() {
     buttonTrainDec = new SeaRobSpringButton("train down", PIN_TRAIN_BUTTON_DEC, &onButtonDownTrainDec);
     //sliderinput_setup(&sliderTrain, "train velocity", PIN_TRAIN_SLIDE, &onSliderChangeTrain);
 
-    bclogger("setup: train complete, power=%d, dir=%d, v=%d", trainPower, trainDirection, trainVelocity);
+    bclogger("setup: train complete, power=%d, dir=%d, speed=%d/255", trainPower, trainDirection, trainVelocity);
   }
 
   if (usePFLight) {
@@ -227,7 +242,17 @@ void setup() {
 
     int buttonPins[] = { 30, 31, 32, 33, 34};
     int lightPins[] = { 40, 41, 44, 43, 42};
-    buttonLightList = new SeaRobSpringButtonLightList(MAX_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
+    buttonLightList = new SeaRobSpringButtonLightList(String("rooftop lights"), MAX_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
+    
+    bclogger("setup: pf-light complete");
+  }
+
+  if (useFrontLights) {
+    bclogger("setup: 5v-light starting");
+
+    frontLights = new SeaRobSpringButtonLight("street light", 36, 46, onButtonDownFront5vLight, NULL);
+    stormLights1 = new SeaRobSpringButtonLight("unused 1", 37, 47, onButtonDownFront5vLight, NULL);
+    stormLights2 = new SeaRobSpringButtonLight("unused 2", 38, 48, onButtonDownFront5vLight, NULL);
   }
 
   // Init the rest of our internal state.
@@ -269,6 +294,12 @@ void loop() {
 
   if (usePFLight) {
       buttonLightList->ProcessLoop(lastUpdateTime);
+  }
+
+  if (useFrontLights) {
+    frontLights->ProcessLoop(lastUpdateTime);
+    stormLights1->ProcessLoop(lastUpdateTime);
+    stormLights2->ProcessLoop(lastUpdateTime);
   }
 
   if (useDisplay) {

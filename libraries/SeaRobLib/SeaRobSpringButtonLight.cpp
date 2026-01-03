@@ -5,10 +5,10 @@
 
 /*
  */
-SeaRobSpringButtonLight::SeaRobSpringButtonLight(int uniqueId, int buttonPin, int ledPin, 
+SeaRobSpringButtonLight::SeaRobSpringButtonLight(String name, int buttonPin, int ledPin, 
 		onStateChange stateChangeHandler, void *opaque = NULL) : _light(NULL), _button(NULL) {
 	// Record the unique label, so debug messages will make sense later.
-	_label = uniqueId;
+	_name = name;
 	_stateChangeHandler = stateChangeHandler;
 	_opaque = opaque;
 	
@@ -16,19 +16,19 @@ SeaRobSpringButtonLight::SeaRobSpringButtonLight(int uniqueId, int buttonPin, in
 	_light = new SeaRobLight(ledPin);
 	
 	// Setup the button.
-	char buttonName[100];
-	snprintf(buttonName, 100, "pf-light %02d", _label);
+	char buttonName[255];
+	snprintf(buttonName, 255, "%s button", _name.c_str());
 	_button = new SeaRobSpringButton(buttonName, buttonPin, SeaRobSpringButtonLight::StaticOnButtonDown, this);
 	
-	bclogger("SeaRobSpringButtonLight: button-light %02d: created on button-pin %d and light-pin %d", 
-		_label, buttonPin, ledPin);
+	bclogger("SeaRobSpringButtonLight (%d): \"%s\": created on button-pin %d and light-pin %d", 
+		_objId, _name.c_str(), buttonPin, ledPin);
 }
 
 
 /*
 */
 SeaRobSpringButtonLight::~SeaRobSpringButtonLight() {
-	bclogger("SeaRobSpringButtonLight: button-light %02d: destroying", _label);
+	bclogger("SeaRobSpringButtonLight (%d): \"%s\": destroying", _objId, _name.c_str());
 	delete _light;
 	delete _button;
 }
@@ -37,8 +37,10 @@ SeaRobSpringButtonLight::~SeaRobSpringButtonLight() {
 /*
  */
 void SeaRobSpringButtonLight::OnButtonDown(long updateTime) {  
+
 	_light->ToggleOnOff();
-	bclogger("SeaRobSpringButtonLight: button-light %02d: toggled to on=%d", _label, _light->IsOn());
+	bclogger("SeaRobSpringButtonLight (%d): \"%s\": toggled to %s", 
+		_objId, _name.c_str(), _light->IsOn() ? "on" : "off");
 	
 	// propagate the event to the next layer up.
 	_stateChangeHandler(this, updateTime);

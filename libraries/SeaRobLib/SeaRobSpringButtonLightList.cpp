@@ -3,58 +3,60 @@
 #include "SeaRobSpringButtonLightList.h"
 
 
-	
-
 /*
  */
-SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(int numLights, int* buttonPins, int* lightPins, int selectorButtonPin)
+SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int* buttonPins, int* lightPins, int selectorButtonPin)
  : _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
 	// Alloc the light array.
 	_buttonLights = new SeaRobSpringButtonLight*[_numLights * 2];
 
 	// Init the light+button array.
-	int startId = 1;
+	char buttonName[255];
 	for (int i = 0 ; i < _numLights ; i++) {
-		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(startId + i, buttonPins[i], lightPins[i], 
+		snprintf(buttonName, 255, "%s %d", name.c_str(), i + 1);
+		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, buttonPins[i], lightPins[i], 
 				StaticOnButtonDownLightIndividual, this);
 		_buttonLights[i] = bl;
 	}
 
     // Blink-mode selector button.
-    _buttonModeSelector = new SeaRobSpringButton("pf-light selector", selectorButtonPin, StaticOnButtonDownLightSelector, this);
+	snprintf(buttonName, 255, "%s selector", name.c_str());
+    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, StaticOnButtonDownLightSelector, this);
     
-    bclogger("SeaRobSpringButtonLightList: creating with num=%d, state=%d, selector=%d", 
-		_numLights, _blinkState, selectorButtonPin);
+    bclogger("SeaRobSpringButtonLightList (%d): created with num=%d, state=%d, selector=%d", 
+		_objId, _numLights, _blinkState, selectorButtonPin);
 }
 
 
 /*
  */
-SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(int numLights, int startButtonPin, int startLightPin, int selectorButtonPin)
+SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int startButtonPin, int startLightPin, int selectorButtonPin)
  : _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
 	// Alloc the light array.
 	_buttonLights = new SeaRobSpringButtonLight*[_numLights];
 
 	// Init the light+button array.
-	int startId = 1;
+	char buttonName[255];
 	for (int i = 0 ; i < _numLights ; i++) {
-		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(startId + i, startButtonPin + i, startLightPin + i, 
+		snprintf(buttonName, 255, "%s button %d", name, i + 1);
+		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, startButtonPin + i, startLightPin + i, 
 			StaticOnButtonDownLightIndividual, this);
 		_buttonLights[i] = bl;
 	}
 
     // Blink-mode selector button.
-    _buttonModeSelector = new SeaRobSpringButton("pf-light selector", selectorButtonPin, StaticOnButtonDownLightSelector, this);
+    snprintf(buttonName, 255, "%s selector", name);
+    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, StaticOnButtonDownLightSelector, this);
     
-	bclogger("SeaRobSpringButtonLightList: creating with num=%d, state=%d, button-start=%d, light-start=%d, selector=%d", 
-		_numLights, _blinkState, startButtonPin, startLightPin, selectorButtonPin);
+	bclogger("SeaRobSpringButtonLightList (%d): created with num=%d, state=%d, button-start=%d, light-start=%d, selector=%d", 
+		_objId, _numLights, _blinkState, startButtonPin, startLightPin, selectorButtonPin);
 }
 
 
 /*
 */
 SeaRobSpringButtonLightList::~SeaRobSpringButtonLightList() {
-	bclogger("SeaRobSpringButtonLightList: destroying");
+	bclogger("SeaRobSpringButtonLightList (%d): destroying", _objId);
 	for (int i = 0 ; i < _numLights ; i++) {
 		delete _buttonLights[i];
 	}
@@ -92,7 +94,8 @@ void SeaRobSpringButtonLightList::GetStatusString(char *buf, int buflen) {
  * button callback: any of the individual buttons
  */
 void SeaRobSpringButtonLightList::OnButtonDownLightIndividual(long updateTime) {
-	bclogger("SeaRobSpringButtonLightList:OnButtonDownLightIndividual, state=%d", _blinkState);
+	bclogger("SeaRobSpringButtonLightList:OnButtonDownLightIndividual (%d), state=%d", 
+			_objId, _blinkState);
 		
 	// Turn off any synchronized blinking if we are playing with individual buttons.
 	if (_blinkState != BlinkState_Off) {
@@ -106,7 +109,8 @@ void SeaRobSpringButtonLightList::OnButtonDownLightIndividual(long updateTime) {
  * button callback: selector button
  */
 void SeaRobSpringButtonLightList::OnButtonDownLightSelector(long updateTime) {
-	bclogger("SeaRobSpringButtonLightList:OnButtonDownLightIndividual, state=%d", _blinkState);
+	bclogger("SeaRobSpringButtonLightList:OnButtonDownLightIndividual (%d), state=%d", 
+		_objId, _blinkState);
 	
 	// Incrmement through the states.
 	switch (_blinkState) {
@@ -296,5 +300,5 @@ void SeaRobSpringButtonLightList::HandleStateChange(long updateTime) {
       break;
   }  
 
-  bclogger("SeaRobSpringButtonLightList: now state=%d", _blinkState);
+  bclogger("SeaRobSpringButtonLightList (%d): now state=%d", _objId, _blinkState);
 }

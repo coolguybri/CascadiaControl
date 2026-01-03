@@ -15,7 +15,7 @@ class SeaRobObject {
 	private:
   		static int				s_nextId;
   						
-	private:
+	protected:
 		const int        		_objId;
 		const unsigned long		_creationTime;
 };

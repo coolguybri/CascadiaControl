@@ -19,22 +19,22 @@ typedef void (*onStateChange) (SeaRobSpringButtonLight *bl, long updateTime);
 class SeaRobSpringButtonLight : public SeaRobObject {
 
   public:
-    		SeaRobSpringButtonLight(int uniqueId, int buttonPin, int ledPin, 
+    		SeaRobSpringButtonLight(String name, int buttonPin, int ledPin, 
     				onStateChange stateChangeHandler, void *opaque = NULL);
     		virtual ~SeaRobSpringButtonLight();
 
-    virtual void 	ProcessLoop(unsigned long updateTime);
+    virtual void 			ProcessLoop(unsigned long updateTime);
     
-     SeaRobLight *  GetLight() { return _light; }
-     SeaRobSpringButton * GetButton() { return _button; }
-     bool IsOn() { return _light->IsOn(); }
-     void *			GetOpaque() { return _opaque; }
+     SeaRobLight *  		GetLight() { return _light; }
+     SeaRobSpringButton * 	GetButton() { return _button; }
+     bool 					IsOn() { return _light->IsOn(); }
+     void *					GetOpaque() { return _opaque; }
 
   protected:
-    void 	OnButtonDown(long updateTime);
+    void 					OnButtonDown(long updateTime);
     
   private:
-    int                   	_label;
+    String                  _name;
     SeaRobLight *         	_light;
     SeaRobSpringButton *  	_button;
     
