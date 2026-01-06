@@ -8,11 +8,10 @@
 #include "MotorPCM.h"
 #include "SliderInput.h"
 
-
 // Constants: Specific I/O Pins that must be used.
 // Assumes the Arduino Mega 3560 R3 Board.
 
-// Windmill Subsystem
+// Constants: Windmill Subsystem
 #define PIN_WINDMILL_BUTTON_PWR     22 // Digital Pin, input
 #define PIN_WINDMILL_BUTTON_DIR     23 // Digital Pin, input
 #define PIN_WINDMILL_BUTTON_INC     24 // Digital Pin, input
@@ -21,7 +20,7 @@
 #define PIN_WINDMILL_MOTOR_IN2      53 // Digital Pin, output
 #define PIN_WINDMILL_MOTOR_ENB      2  // Digital PWM Pin, output
 
-// Train subsystem
+// Constants: Train subsystem
 #define PIN_TRAIN_BUTTON_PWR        26 // Digital Pin, input
 #define PIN_TRAIN_BUTTON_DIR        27 // Digital Pin, input
 #define PIN_TRAIN_BUTTON_INC        28 // Digital Pin, input
@@ -29,15 +28,15 @@
 #define PIN_TRAIN_MOTOR_IN1         50 // Digital Pin, output
 #define PIN_TRAIN_MOTOR_IN2         51 // Digital Pin, output
 #define PIN_TRAIN_MOTOR_ENB         3  // Digital PWM Pin, output
-
 #define PIN_TRAIN_SLIDER            A1 // Analog Pin, input (experimental)
 
-// Lego PowerFunctions Light Array
+// Constants: Lego PowerFunctions Light Array
+#define MAX_PF_LIGHTS               5
 #define PIN_PF_LIGHT_BUTTON_1       30 // Digital Pin, input  [30-34]
 #define PIN_PF_LIGHT_CTRL_1         40 // Digital Pin, output [40-44]
 #define PIN_PF_LIGHT_MODE_SELECTOR  35 // Digital Pin, output [35]
 
-// LCD Display subsystem
+// Constants: LCD Display subsystem
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
 #define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
 
@@ -59,7 +58,7 @@ SeaRobDisplay display(PIN_I2C_SDA, PIN_I2C_SCL);
 boolean       useWindmill = true;
 boolean       windmillPower = false;
 boolean       windmillDirection = true;
-int           windmillVelocity = 120;
+int           windmillVelocity = 255;
 MotorPCM      motorWindmill;
 SeaRobSpringButton *  buttonWindmillPwr;
 SeaRobSpringButton *  buttonWindmillDir;
@@ -81,16 +80,16 @@ SliderInput   sliderTrain;
 
 
 // Globals: PowerFunctions (PF) Lights (9 volts, turned on via transistor)
-#define                         MAX_LIGHTS 5
 boolean                         usePFLight = true;
 SeaRobSpringButtonLightList *   buttonLightList = NULL;
 
 
-// Globals: LightMyBricks 5-volt lights
-boolean                     useFrontLights = true;
+// Globals: 5-volt lights (USB); examples: LightMyBricks, BrickStuff
+boolean                     useUSBLight = true;
 SeaRobSpringButtonLight *   frontLights = NULL;
 SeaRobSpringButtonLight *   stormLights1 = NULL;
 SeaRobSpringButtonLight *   stormLights2 = NULL;
+SeaRobSpringButtonLight *   stormLights3 = NULL;
 
 
 /*
@@ -172,7 +171,6 @@ int onButtonDownTrainDec(SeaRobSpringButton *button, long updateTime) {
 
 
 int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
-  //trainDirection = !trainDirection;
   bclogger("train velocity: set to %d", newValue);
 
   // TODO: This doesnt work yet.
@@ -181,11 +179,11 @@ int onSliderChangeTrain(SliderInput *input, int newValue, long updateTime) {
 
 
 /*
- * 5v light callbacks
+ * USB light callbacks
  */
     
-void onButtonDownFront5vLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
-  // bclogger("onButtonDownFront5vLight");
+void onButtonDownFrontUsbLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
+  // bclogger("onButtonDownFrontUsbLight");
 }
 
 /*
@@ -238,21 +236,22 @@ void setup() {
   }
 
   if (usePFLight) {
-    bclogger("setup: pf-light starting with maxLights=%d", MAX_LIGHTS);
+    bclogger("setup: pf-light starting with maxLights=%d", MAX_PF_LIGHTS);
 
-    int buttonPins[] = { 30, 31, 32, 33, 34};
-    int lightPins[] = { 40, 41, 44, 43, 42};
-    buttonLightList = new SeaRobSpringButtonLightList(String("rooftop lights"), MAX_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
+    int buttonPins[] = { 30, 31, 32, 33, 34 };
+    int lightPins[] = { 40, 41, 44, 43, 42 };
+    buttonLightList = new SeaRobSpringButtonLightList(String("rooftop lights"), MAX_PF_LIGHTS, buttonPins, lightPins, PIN_PF_LIGHT_MODE_SELECTOR);
     
     bclogger("setup: pf-light complete");
   }
 
-  if (useFrontLights) {
-    bclogger("setup: 5v-light starting");
+  if (useUSBLight) {
+    bclogger("setup: usb-light starting");
 
-    frontLights = new SeaRobSpringButtonLight("street light", 36, 46, onButtonDownFront5vLight, NULL);
-    stormLights1 = new SeaRobSpringButtonLight("unused 1", 37, 47, onButtonDownFront5vLight, NULL);
-    stormLights2 = new SeaRobSpringButtonLight("unused 2", 38, 48, onButtonDownFront5vLight, NULL);
+    frontLights = new SeaRobSpringButtonLight("front row", 36, 46, onButtonDownFrontUsbLight, NULL);
+    stormLights1 = new SeaRobSpringButtonLight("stormbase 1", 37, 47, onButtonDownFrontUsbLight, NULL);
+    stormLights2 = new SeaRobSpringButtonLight("stormbase 2", 38, 48, onButtonDownFrontUsbLight, NULL);
+    stormLights3 = new SeaRobSpringButtonLight("stormbase 3", 39, 49, onButtonDownFrontUsbLight, NULL);
   }
 
   // Init the rest of our internal state.
@@ -293,42 +292,53 @@ void loop() {
   }
 
   if (usePFLight) {
-      buttonLightList->ProcessLoop(lastUpdateTime);
+    buttonLightList->ProcessLoop(lastUpdateTime);
   }
 
-  if (useFrontLights) {
+  if (useUSBLight) {
     frontLights->ProcessLoop(lastUpdateTime);
     stormLights1->ProcessLoop(lastUpdateTime);
     stormLights2->ProcessLoop(lastUpdateTime);
+    stormLights3->ProcessLoop(lastUpdateTime);
   }
 
   if (useDisplay) {
       // Update the OLED screen with our current state.
 
-      char headerBuffer[50];
-      snprintf(headerBuffer, 50, "coolguybri cntrl 2.0");
+      #define LINE_BUFFER_SIZE 50
+      char headerBuffer[LINE_BUFFER_SIZE];
+      snprintf(headerBuffer, LINE_BUFFER_SIZE, "coolguybri cntrl 3.0");
       
       // Format the Uptime.
-      int upSecs = (lastUpdateTime - startTime) / 1000;
-      char line1Buffer[50];
-      snprintf(line1Buffer, 50, "%09d %s", upSecs, buildDatestamp);
-  
-      // Windmill monitoring.
-      char line2Buffer[50];
-      snprintf(line2Buffer, 50, "wml: [%c] %s %03d %d%%", 
-          windmillPower ? '*' : ' ', windmillDirection ? "<-" : "->", windmillVelocity, (windmillVelocity * 100) / 255);
+      unsigned long upSecs = (lastUpdateTime - startTime) / 1000;
+      char line1Buffer[LINE_BUFFER_SIZE];
+      snprintf(line1Buffer, LINE_BUFFER_SIZE, "%09lu %s", upSecs, buildDatestamp);
 
-      // Train monitoring
-      char line3Buffer[50];
-      snprintf(line3Buffer, 50, "trn: [%c] %s %03d %d%%", 
-          trainPower ? '*' : ' ', trainDirection ? "<-" : "->", trainVelocity, (trainVelocity * 100) / 255);
+       // Train monitoring
+      char line2Buffer[LINE_BUFFER_SIZE];
+      snprintf(line2Buffer, LINE_BUFFER_SIZE, "t [%c] %s %d%%", 
+          trainPower ? '*' : ' ', trainDirection ? "<-" : "->", (trainVelocity * 100) / 255);
+          
+      // Windmill monitoring.
+      char line3Buffer[LINE_BUFFER_SIZE];
+      snprintf(line3Buffer, LINE_BUFFER_SIZE, "w [%c] %s %d%%", 
+          windmillPower ? '*' : ' ', windmillDirection ? "<-" : "->", (windmillVelocity * 100) / 255);
 
       // PF-Light monitoring
-      char line4Buffer[50];
-      strcpy(line4Buffer, "lit: ");
+      char line4Buffer[LINE_BUFFER_SIZE];
+      strcpy(line4Buffer, "l ");
       int litstrlen = strlen(line4Buffer);
-      buttonLightList->GetStatusString(line4Buffer + litstrlen, 50 - litstrlen);
-  
+      buttonLightList->GetStatusString(line4Buffer + litstrlen, LINE_BUFFER_SIZE - litstrlen);
+      litstrlen = strlen(line4Buffer);
+      
+      // USB-Light monitoring
+       //snprintf(line4Buffer + litstrlen, LINE_BUFFER_SIZE - litstrlen, "[%c]", frontLights->IsOn() ? '*' : 'o');
+      snprintf(line4Buffer + litstrlen, LINE_BUFFER_SIZE - litstrlen, " [%c%c%c%c]", 
+        frontLights->IsOn() ? '*' : 'o',
+        stormLights1->IsOn() ? '*' : 'o',
+        stormLights2->IsOn() ? '*' : 'o',
+        stormLights3->IsOn() ? '*' : 'o');
+
       // Send to the display.
       display.displayStandard(
         headerBuffer,
