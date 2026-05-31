@@ -6,14 +6,14 @@
 /*
  */
 SeaRobSpringButtonLight::SeaRobSpringButtonLight(String name, int buttonPin, int ledPin, 
-		onStateChange stateChangeHandler, void *opaque = NULL) : _light(NULL), _button(NULL) {
+		onStateChange stateChangeHandler, void *opaque, bool dimmable) : _light(NULL), _button(NULL) {
 	// Record the unique label, so debug messages will make sense later.
 	_name = name;
 	_stateChangeHandler = stateChangeHandler;
 	_opaque = opaque;
 	
 	// Setup the light.
-	_light = new SeaRobLight(ledPin);
+	_light = new SeaRobLight(ledPin, dimmable);
 	
 	// Setup the button.
 	char buttonName[255];

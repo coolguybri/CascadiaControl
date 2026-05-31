@@ -5,13 +5,26 @@
 
 /*
  */
-SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
+SeaRobLight::SeaRobLight(int pin, int blinkOffset) : SeaRobLight(pin, false, blinkOffset) {
+}
+
+/*
+*/
+SeaRobLight::SeaRobLight(int pin, bool dimmable, int blinkOffset) : _pin(pin), _dimmable(dimmable) {
   _state = LightState::Off;
-  _blinkOffset = offset;
+  _lastToggleState = LightState::On;
+  _fadeState = FadeState::FadeOff;
+  _fadeStart = 0;
+  _fadeInTime = 0;
+  _fadeOutTime = 0;
+  
+  _blinkOffset = blinkOffset;
   _blinkDurationCount = 0;
   _blinkDurationIndex = 0;
   _blinkDurations = NULL;
   _blinkTimeNext = 0;
+  
+  _dimLevel = 255;
   _litState = false;
   _loggingState = false;
 
@@ -22,8 +35,8 @@ SeaRobLight::SeaRobLight(int p, int offset): _pin(p) {
 
   pinMode(_pin, OUTPUT);
  
-  bclogger("SeaRobLight (%d): pin=%d, state=%d, offset=%d, nextblink=%lu", 
-    _objId, _pin, _state, _blinkOffset, _blinkTimeNext);
+  bclogger("SeaRobLight (%d): pin=%d, dimmable=%b, dimLevel=%d, state=%d, offset=%d, nextblink=%lu, ", 
+    _objId, _pin, _dimmable, _dimLevel, _state, _blinkOffset, _blinkTimeNext);
 }
 
 
@@ -44,7 +57,6 @@ void SeaRobLight::SetDebugLogging(bool setter) {
   }
 }
 
-
 /*
  */
 void SeaRobLight::UpdateState(LightState state) {
@@ -55,20 +67,36 @@ void SeaRobLight::UpdateState(LightState state) {
    }
 }
 
+/*
+ */
+void SeaRobLight::UpdateDimLevel(int dimLevel) {
+   _dimLevel = dimLevel;
+
+   if (_loggingState) {
+      bclogger("SeaRobLight::UpdateDimLevel: pin=%d, state=%d, level=%d", _pin, _state, _dimLevel);
+   }
+}
 
 /*
  */
-void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, boolean startOn) {
+void SeaRobLight::UpdateBlinkConfig(unsigned long startTime, int offset, int durationOn, int durationOff, 
+				boolean startOn, int fadeInDelay, int fadeOutDelay) {
 	int durations[2] = { durationOn, durationOff };
-	UpdateBlinkSequenceConfig(startTime, offset, 2, durations, startOn);
+	UpdateBlinkSequenceConfig(startTime, offset, 2, durations, startOn, fadeInDelay, fadeOutDelay);
 }
 
 
-void SeaRobLight::UpdateBlinkSequenceConfig(unsigned long startTime, int offset, int durationCount, int *durations, boolean startOn) {
+/*
+ */
+void SeaRobLight::UpdateBlinkSequenceConfig(unsigned long startTime, int offset, int durationCount, int *durations, 
+				boolean startOn, int fadeInDelay, int fadeOutDelay) {
+			
 	// Set initial state.
 	_blinkOffset = offset;
 	_blinkTimeNext = startTime + _blinkOffset;
 	_litState = startOn;
+	_fadeInTime = fadeInDelay;
+	_fadeOutTime = fadeOutDelay;
 	
 	// Setup the blink state, deleting any previous state.
 	if (_blinkDurations) {
@@ -94,17 +122,18 @@ void SeaRobLight::UpdateBlinkSequenceConfig(unsigned long startTime, int offset,
 }
 
 
-
 /*
  */
 void SeaRobLight::ToggleOnOff() {
    switch (_state) {
     case LightState::Off:
-      _state = LightState::On;
+      _state = _lastToggleState;
       _litState = true;
       break;
       
     case LightState::On: 
+    case LightState::UniformBlink:
+      _lastToggleState = _state;
       _state = LightState::Off;
       _litState = false;
       break;
@@ -119,7 +148,7 @@ void SeaRobLight::ToggleOnOff() {
    }
 
    if (_loggingState) {
-      bclogger("SeaRobLight::ToggleOnOff (%d): pin=%d, state=%d, litState=%d", _objId, _pin, _state, _litState);
+      bclogger("SeaRobLight::ToggleOnOff (%d): pin=%d, state=%d, litState=%d, dimLevel=%d", _objId, _pin, _state, _litState, _dimLevel);
    }
 }
 
@@ -130,6 +159,11 @@ boolean SeaRobLight::IsOn() {
   return _litState;
 }
 
+/* 
+ */
+int SeaRobLight::GetDimLevel() {
+  return _dimLevel;
+}
 
 /*
  */
@@ -154,6 +188,85 @@ String SeaRobLight::GetStateName() {
 /*
  */
 void SeaRobLight::ProcessLoop(unsigned long updateTime) {
+  if (_dimmable) {
+  	ProcessLoopDimmable(updateTime);
+  } else {
+  	ProcessLoopNonDimmable(updateTime);
+  }
+}
+
+#define DELAY_TIME 1000
+
+/*
+ */
+void SeaRobLight::ProcessLoopDimmable(unsigned long updateTime) {
+  
+  switch (_state) {
+    case LightState::Off:
+		_litState = false;
+		break;
+      
+    case LightState::On: 
+		_litState = true;
+		break;
+    
+    case LightState::UniformBlink:
+    	switch (_fadeState) {
+    		case FadeState::FadeOff: {
+				if (updateTime >= _blinkTimeNext) {		
+					_fadeState = _litState ? FadeState::FadeOut : FadeState::FadeIn;
+					_fadeStart = _blinkTimeNext;
+					_blinkTimeNext = _blinkTimeNext + ((_fadeState == FadeState::FadeOut) ? _fadeOutTime : _fadeInTime);
+				}
+			}
+			break;
+				
+			case FadeState::FadeOut: {
+				// calculate current dim level
+				unsigned long millisDone = updateTime - _fadeStart;
+				float partDone = (float) millisDone / (float) _fadeOutTime;
+				int level = 256 - (int) (partDone * 256);
+				_dimLevel = level;
+				bclogger("light_loop: fadeout part=%0.1f dimlevel = %d", partDone, _dimLevel);
+				
+				if (updateTime >= _blinkTimeNext) {	
+					bclogger("light_loop: fadeout complete");
+					_fadeState = FadeState::FadeOff;
+					_litState = false;
+					RescheduleBlink();
+				}
+			}
+			break;
+					
+			case FadeState::FadeIn: {
+				// calculate current dim level
+				unsigned long millisDone = updateTime - _fadeStart;
+				float partDone = (float) millisDone / (float) _fadeInTime;
+				int level = (int) (partDone * 256);
+				_dimLevel = level;
+				_litState = true;
+				bclogger("light_loop: fadein part=%0.1f dimlevel = %d", partDone, _dimLevel);
+				
+				if (updateTime >= _blinkTimeNext) {	
+					bclogger("light_loop: fadein complete");
+					_fadeState = FadeState::FadeOff;
+					RescheduleBlink();
+				}
+			}
+			break;
+	 }
+  }
+
+  // Write out current state to the led.
+  int writeValue = _litState ? _dimLevel : 0;
+  if (writeValue < 0) writeValue = 0;
+  if (writeValue > 255) writeValue = 255;
+  analogWrite(_pin, writeValue);
+}
+
+/*
+ */
+void SeaRobLight::ProcessLoopNonDimmable(unsigned long updateTime) {
   switch (_state) {
     case LightState::Off:
 		_litState = false;
@@ -165,38 +278,44 @@ void SeaRobLight::ProcessLoop(unsigned long updateTime) {
     
     case LightState::UniformBlink:
 		if (updateTime >= _blinkTimeNext) {
-			unsigned long thisTime = _blinkTimeNext;
-		
 			_litState = !_litState;
-		
-			int nextDuration = 1000;
-			if (!_blinkDurations) {
-				bclogger("light_loop: pin=%d, state=%d, ILLEGAL STATE - no durations", _pin, _state);
-			} else {
-				nextDuration = _blinkDurations[_blinkDurationIndex];
-				if (_loggingState) {
-					bclogger("light_loop: duration index %d = %d", _blinkDurationIndex, nextDuration);
-				}
-
-				_blinkDurationIndex++;
-				if (_blinkDurationIndex >= _blinkDurationCount)
-					_blinkDurationIndex = 0;
-					
-				if (_loggingState) {
-					bclogger("light_loop: next index is %d", _blinkDurationIndex);
-				}
-			}
-		
-		_blinkTimeNext = _blinkTimeNext + nextDuration;
-		
-		if (_loggingState) {
-			bclogger("light_loop: update=%lu, pin=%d, state=%d, nextDur=%d, thisFrameStart=%lu, nextFrameStart=%lu", 
-				updateTime, _pin, _state, nextDuration, thisTime, _blinkTimeNext);
+			RescheduleBlink();
 		}
-	  }
-      break;
+      	break;
   }
 
   // Write out current state to the led.
   digitalWrite(_pin, _litState);
+}
+
+
+/*
+*/
+void SeaRobLight::RescheduleBlink() {
+	unsigned long thisTime = _blinkTimeNext;
+
+	int nextDuration = 1000;
+	if (!_blinkDurations) {
+		bclogger("RescheduleBlink: pin=%d, state=%d, ILLEGAL STATE - no durations", _pin, _state);
+	} else {
+		nextDuration = _blinkDurations[_blinkDurationIndex];
+		if (_loggingState) {
+			bclogger("RescheduleBlink: duration index %d = %d", _blinkDurationIndex, nextDuration);
+		}
+
+		_blinkDurationIndex++;
+		if (_blinkDurationIndex >= _blinkDurationCount)
+			_blinkDurationIndex = 0;
+			
+		if (_loggingState) {
+			bclogger("RescheduleBlink: next index is %d", _blinkDurationIndex);
+		}
+	}
+
+	_blinkTimeNext = _blinkTimeNext + nextDuration;
+	
+	if (_loggingState) {
+		bclogger("RescheduleBlink: pin=%d, state=%d, nextDur=%d, thisFrameStart=%lu, nextFrameStart=%lu", 
+			_pin, _state, nextDuration, thisTime, _blinkTimeNext);
+	}
 }

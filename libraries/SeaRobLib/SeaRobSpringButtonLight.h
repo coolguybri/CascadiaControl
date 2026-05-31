@@ -20,7 +20,7 @@ class SeaRobSpringButtonLight : public SeaRobObject {
 
   public:
     		SeaRobSpringButtonLight(String name, int buttonPin, int ledPin, 
-    				onStateChange stateChangeHandler, void *opaque = NULL);
+    				onStateChange stateChangeHandler, void *opaque = NULL, bool dimmable = false);
     		virtual ~SeaRobSpringButtonLight();
 
     virtual void 			ProcessLoop(unsigned long updateTime);
