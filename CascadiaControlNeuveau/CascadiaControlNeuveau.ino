@@ -39,10 +39,10 @@
 // Constants: 5v USB "brickstuff" street lights and light effects
 #define PIN_BRICKSTUFF_STREETLIGHT_BUTTON       36 // Digital Pin, input
 #define PIN_BRICKSTUFF_STREETLIGHT_CTRL         46 // Digital Pin, output
-#define PIN_BRICKSTUFF_STORM_RED_1_BUTTON       37 // Digital Pin, input
-#define PIN_BRICKSTUFF_STORM_RED_1_CTRL         5  // Digital PWM Pin, output
-#define PIN_BRICKSTUFF_STORM_RED_2_BUTTON       38 // Digital Pin, input
-#define PIN_BRICKSTUFF_STORM_RED_2_CTRL         6  // Digital PWM Pin, output
+#define PIN_BRICKSTUFF_STORM_REDBEAM_BUTTON     37 // Digital Pin, input
+#define PIN_BRICKSTUFF_STORM_REDBEAM_CTRL       5  // Digital PWM Pin, output
+#define PIN_BRICKSTUFF_STORM_INTERNAL_BUTTON    38 // Digital Pin, input
+#define PIN_BRICKSTUFF_STORM_INTERNAL_CTRL      47 // Digital Pin, output
 
 // Constants: LCD Display subsystem
 #define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
@@ -99,8 +99,8 @@ SeaRobSpringButtonLightList *   buttonLightList = NULL;
 // Globals: 5-volt lights (USB); examples: LightMyBricks, BrickStuff
 boolean                     useUSBLight = true;
 SeaRobSpringButtonLight *   frontLights = NULL;
-SeaRobSpringButtonLight *   stormRedLight1 = NULL;
-SeaRobSpringButtonLight *   stormRedLight2 = NULL;
+SeaRobSpringButtonLight *   stormRedBeamLight = NULL;
+SeaRobSpringButtonLight *   stormInternalLight = NULL;
 
 
 /*
@@ -197,9 +197,14 @@ void onButtonDownFrontUsbLight(SeaRobSpringButtonLight *buttonLight, long update
   bclogger("onButtonDownFrontUsbLight");
 }
 
-void onButtonDownStormRedLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
-  bclogger("onButtonDownStormRedLight");
+void onButtonDownStormRedBeamLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
+  bclogger("onButtonDownStormRedBeamLight");
 }
+
+void onButtonDownStormInternalLight(SeaRobSpringButtonLight *buttonLight, long updateTime) {
+  bclogger("onButtonDownStormInteralLight");
+}
+
 
 
 /*
@@ -267,20 +272,18 @@ void setup() {
     frontLights = new SeaRobSpringButtonLight("front row street lights", 
         PIN_BRICKSTUFF_STREETLIGHT_BUTTON, PIN_BRICKSTUFF_STREETLIGHT_CTRL, 
         onButtonDownFrontUsbLight, NULL, false);
+    frontLights->GetLight()->ToggleOnOff(); // Default to on at startup.
         
-    stormRedLight1 = new SeaRobSpringButtonLight("storm-redline 1", 
-        PIN_BRICKSTUFF_STORM_RED_1_BUTTON, PIN_BRICKSTUFF_STORM_RED_1_CTRL, 
-        onButtonDownStormRedLight, NULL, true);
-    stormRedLight1->GetLight()->UpdateBlinkConfig(0, 0, STORM_RED_DURATION_ON, STORM_RED_DURATION_OFF, 
+    stormRedBeamLight = new SeaRobSpringButtonLight("storm-redbeam", 
+        PIN_BRICKSTUFF_STORM_REDBEAM_BUTTON, PIN_BRICKSTUFF_STORM_REDBEAM_CTRL, 
+        onButtonDownStormRedBeamLight, NULL, true);
+    stormRedBeamLight->GetLight()->UpdateBlinkConfig(0, 0, STORM_RED_DURATION_ON, STORM_RED_DURATION_OFF, 
         false, STORM_RED_DURATION_FADE, STORM_RED_DURATION_FADE);
-    stormRedLight1->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
+    stormRedBeamLight->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
       
-    stormRedLight2 = new SeaRobSpringButtonLight("storm-redline 2", 
-        PIN_BRICKSTUFF_STORM_RED_2_BUTTON, PIN_BRICKSTUFF_STORM_RED_2_CTRL, 
-        onButtonDownStormRedLight, NULL, true);
-    stormRedLight2->GetLight()->UpdateBlinkConfig(0, 0, STORM_RED_DURATION_ON, STORM_RED_DURATION_OFF, 
-        false, STORM_RED_DURATION_FADE, STORM_RED_DURATION_FADE);
-    stormRedLight2->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
+    stormInternalLight = new SeaRobSpringButtonLight("storm-internal", 
+        PIN_BRICKSTUFF_STORM_INTERNAL_BUTTON, PIN_BRICKSTUFF_STORM_INTERNAL_CTRL, 
+        onButtonDownStormInternalLight, NULL, false);
 
     bclogger("setup: usb-light complete");
   }
@@ -328,8 +331,8 @@ void loop() {
 
   if (useUSBLight) {
     frontLights->ProcessLoop(lastUpdateTime);
-    stormRedLight1->ProcessLoop(lastUpdateTime);
-    stormRedLight2->ProcessLoop(lastUpdateTime);
+    stormRedBeamLight->ProcessLoop(lastUpdateTime);
+    stormInternalLight->ProcessLoop(lastUpdateTime);
   }
 
   if (useDisplay) {
@@ -364,8 +367,8 @@ void loop() {
       // USB-Light monitoring
       snprintf(line4Buffer + litstrlen, LINE_BUFFER_SIZE - litstrlen, " [%c%c%c%c]", 
         frontLights->IsOn() ? '*' : 'o',
-        stormRedLight1->IsOn() ? '*' : 'o',
-        stormRedLight2->IsOn() ? '*' : 'o',
+        stormRedBeamLight->IsOn() ? '*' : 'o',
+        stormInternalLight->IsOn() ? '*' : 'o',
         false ? '*' : 'o'); // TODO: add new button
 
       // Send to the display.
