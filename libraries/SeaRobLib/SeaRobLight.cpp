@@ -35,7 +35,7 @@ SeaRobLight::SeaRobLight(int pin, bool dimmable, int blinkOffset) : _pin(pin), _
 
   pinMode(_pin, OUTPUT);
  
-  bclogger("SeaRobLight (%d): pin=%d, dimmable=%b, dimLevel=%d, state=%d, offset=%d, nextblink=%lu, ", 
+  bclogger("SeaRobLight (%d): pin=%d, dimmable=%d, dimLevel=%d, state=%d, offset=%d, nextblink=%lu, ", 
     _objId, _pin, _dimmable, _dimLevel, _state, _blinkOffset, _blinkTimeNext);
 }
 
@@ -53,7 +53,7 @@ void SeaRobLight::SetDebugLogging(bool setter) {
   _loggingState = setter;
 
   if (_loggingState != prev) {
-    bclogger("SeaRobLight: pin=%d, logging=%b", _pin, _loggingState);
+    bclogger("SeaRobLight: pin=%d, logging=%d", _pin, _loggingState);
   }
 }
 
