@@ -23,7 +23,7 @@
 // Global Variables: Global Run state of the entire application.
 unsigned long   startTime = 0; 
 unsigned long   lastUpdateTime = 0;
-String          buildName = String("GbcControl2");
+String          buildName = String("CascadiaControlGbc");
 const char      buildTimestamp[] =  __DATE__ " " __TIME__;
 const char      buildDatestamp[] = __DATE__;
 
@@ -49,7 +49,6 @@ void setup() {
   
   // Init the serial line; important for debug messages back to the Arduino Serial Monitor.
   Serial.begin(9600);
-
   bclogger(""); // Skip line to seperate from last instance of the program.
   bclogger("setup: begin \"%s\" (build: %s)", buildName.c_str(), buildTimestamp);
 
@@ -61,7 +60,7 @@ void setup() {
 
   if (usePFLight) {
     bclogger("setup: pf-light starting with maxLights=%d", MAX_LIGHTS);
-	  buttonLightList = new SeaRobSpringButtonLightList(MAX_LIGHTS, PIN_PF_LIGHT_BUTTON_1, PIN_PF_LIGHT_CTRL_1, PIN_PF_LIGHT_MODE_SELECTOR);
+	  buttonLightList = new SeaRobSpringButtonLightList(String("gbc light list"), MAX_LIGHTS, PIN_PF_LIGHT_BUTTON_1, PIN_PF_LIGHT_CTRL_1, PIN_PF_LIGHT_MODE_SELECTOR);
   }
   
   bclogger("setup: complete for \"%s\"", buildName.c_str());
