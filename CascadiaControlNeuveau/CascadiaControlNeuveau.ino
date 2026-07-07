@@ -11,6 +11,10 @@
 // Constants: Specific I/O Pins that must be used.
 // Assumes the Arduino Mega 3560 R3 Board.
 
+// Constants: LCD Display subsystem
+#define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
+#define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
+
 // Constants: Windmill Subsystem
 #define PIN_WINDMILL_BUTTON_PWR     22 // Digital Pin, input
 #define PIN_WINDMILL_BUTTON_DIR     23 // Digital Pin, input
@@ -44,14 +48,11 @@
 #define PIN_BRICKSTUFF_STORM_INTERNAL_BUTTON    38 // Digital Pin, input
 #define PIN_BRICKSTUFF_STORM_INTERNAL_CTRL      47 // Digital Pin, output
 
-// Constants: LCD Display subsystem
-#define PIN_I2C_SDA                 20 // Dedicated SDA Output Pin (mega only)
-#define PIN_I2C_SCL                 21 // Dedicated SCL Output Pin (mega only)
-
 // Constants: Fade time for light effects
 #define STORM_RED_DURATION_ON 1000
 #define STORM_RED_DURATION_OFF 5000
 #define STORM_RED_DURATION_FADE 5000
+
 
 // Global Variables: Global Run state of the entire aplication.
 unsigned long   startTime = 0; 
@@ -217,7 +218,6 @@ void setup() {
   
   // Init the serial line; important for debug messages back to the Arduino Serial Monitor.
   Serial.begin(9600);
-
   bclogger(""); // Skip line to seperate from last instance of the program.
   bclogger("setup: begin \"%s\" (build: %s)", buildName.c_str(), buildTimestamp);
 
@@ -233,10 +233,10 @@ void setup() {
     motor_setup(&motorWindmill, "windmill", PIN_WINDMILL_MOTOR_IN1, PIN_WINDMILL_MOTOR_IN2, PIN_WINDMILL_MOTOR_ENB);
     windmillVelocity = motor_set_pulsewidth(&motorWindmill, windmillVelocity); // middle value.
     
-    buttonWindmillPwr = new SeaRobSpringButton("windmill power", PIN_WINDMILL_BUTTON_PWR, &onButtonDownWindmillPwr);
-    buttonWindmillDir = new SeaRobSpringButton("windmill direction", PIN_WINDMILL_BUTTON_DIR, &onButtonDownWindmillDir);
-    buttonWindmillInc = new SeaRobSpringButton("windmill speed inc", PIN_WINDMILL_BUTTON_INC, &onButtonDownWindmillInc);
-    buttonWindmillDec = new SeaRobSpringButton("windmill speed dec", PIN_WINDMILL_BUTTON_DEC, &onButtonDownWindmillDec);
+    buttonWindmillPwr = new SeaRobSpringButton("windmill power", PIN_WINDMILL_BUTTON_PWR, true, &onButtonDownWindmillPwr);
+    buttonWindmillDir = new SeaRobSpringButton("windmill direction", PIN_WINDMILL_BUTTON_DIR, true, &onButtonDownWindmillDir);
+    buttonWindmillInc = new SeaRobSpringButton("windmill speed inc", PIN_WINDMILL_BUTTON_INC, true, &onButtonDownWindmillInc);
+    buttonWindmillDec = new SeaRobSpringButton("windmill speed dec", PIN_WINDMILL_BUTTON_DEC, true, &onButtonDownWindmillDec);
 
     bclogger("setup: windmill complete, power=%d, dir=%d, speed=%d/255", windmillPower, windmillDirection, windmillVelocity);
   }
@@ -247,11 +247,11 @@ void setup() {
     motor_setup(&motorTrain, "train", PIN_TRAIN_MOTOR_IN1, PIN_TRAIN_MOTOR_IN2, PIN_TRAIN_MOTOR_ENB);
     trainVelocity = motor_set_pulsewidth(&motorTrain, trainVelocity); // middle value.
     
-    buttonTrainPwr = new SeaRobSpringButton("train power", PIN_TRAIN_BUTTON_PWR, &onButtonDownTrainPwr);
-    buttonTrainDir = new SeaRobSpringButton("train direction", PIN_TRAIN_BUTTON_DIR, &onButtonDownTrainDir);
-    buttonTrainInc = new SeaRobSpringButton("train up", PIN_TRAIN_BUTTON_INC, &onButtonDownTrainInc);
-    buttonTrainDec = new SeaRobSpringButton("train down", PIN_TRAIN_BUTTON_DEC, &onButtonDownTrainDec);
-    //sliderinput_setup(&sliderTrain, "train velocity", PIN_TRAIN_SLIDE, &onSliderChangeTrain);
+    buttonTrainPwr = new SeaRobSpringButton("train power", PIN_TRAIN_BUTTON_PWR, true, &onButtonDownTrainPwr);
+    buttonTrainDir = new SeaRobSpringButton("train direction", PIN_TRAIN_BUTTON_DIR, true, &onButtonDownTrainDir);
+    buttonTrainInc = new SeaRobSpringButton("train up", PIN_TRAIN_BUTTON_INC, true, &onButtonDownTrainInc);
+    buttonTrainDec = new SeaRobSpringButton("train down", PIN_TRAIN_BUTTON_DEC, true, &onButtonDownTrainDec);
+    //sliderinput_setup(&sliderTrain, "train velocity", PIN_TRAIN_SLIDE, true, &onSliderChangeTrain);
 
     bclogger("setup: train complete, power=%d, dir=%d, speed=%d/255", trainPower, trainDirection, trainVelocity);
   }
@@ -270,20 +270,20 @@ void setup() {
     bclogger("setup: usb-light starting");
 
     frontLights = new SeaRobSpringButtonLight("front row street lights", 
-        PIN_BRICKSTUFF_STREETLIGHT_BUTTON, PIN_BRICKSTUFF_STREETLIGHT_CTRL, 
-        onButtonDownFrontUsbLight, NULL, false);
+        PIN_BRICKSTUFF_STREETLIGHT_BUTTON, PIN_BRICKSTUFF_STREETLIGHT_CTRL, false, true,
+        onButtonDownFrontUsbLight);
     frontLights->GetLight()->ToggleOnOff(); // Default to on at startup.
         
     stormRedBeamLight = new SeaRobSpringButtonLight("storm-redbeam", 
-        PIN_BRICKSTUFF_STORM_REDBEAM_BUTTON, PIN_BRICKSTUFF_STORM_REDBEAM_CTRL, 
-        onButtonDownStormRedBeamLight, NULL, true);
+        PIN_BRICKSTUFF_STORM_REDBEAM_BUTTON, PIN_BRICKSTUFF_STORM_REDBEAM_CTRL, true, true,
+        onButtonDownStormRedBeamLight);
     stormRedBeamLight->GetLight()->UpdateBlinkConfig(0, 0, STORM_RED_DURATION_ON, STORM_RED_DURATION_OFF, 
         false, STORM_RED_DURATION_FADE, STORM_RED_DURATION_FADE);
     stormRedBeamLight->GetLight()->UpdateState(SeaRobLight::LightState::UniformBlink);
       
     stormInternalLight = new SeaRobSpringButtonLight("storm-internal", 
-        PIN_BRICKSTUFF_STORM_INTERNAL_BUTTON, PIN_BRICKSTUFF_STORM_INTERNAL_CTRL, 
-        onButtonDownStormInternalLight, NULL, false);
+        PIN_BRICKSTUFF_STORM_INTERNAL_BUTTON, PIN_BRICKSTUFF_STORM_INTERNAL_CTRL, false, true,
+        onButtonDownStormInternalLight);
 
     bclogger("setup: usb-light complete");
   }
