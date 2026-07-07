@@ -20,31 +20,49 @@ class SeaRobSpringButtonLight : public SeaRobObject {
 
   public:
     		SeaRobSpringButtonLight(String name, int buttonPin, int ledPin, 
-    				onStateChange stateChangeHandler, void *opaque = NULL, bool dimmable = false);
+    				bool dimmable, bool useInternalPullUp,
+    				onStateChange downHandler, onStateChange upHandler = NULL, void *opaque = NULL);
     		virtual ~SeaRobSpringButtonLight();
 
     virtual void 			ProcessLoop(unsigned long updateTime);
     
-     SeaRobLight *  		GetLight() { return _light; }
-     SeaRobSpringButton * 	GetButton() { return _button; }
-     bool 					IsOn() { return _light->IsOn(); }
-     void *					GetOpaque() { return _opaque; }
+    void					AddExtraLedPin(int ledPin);
+    
+    SeaRobSpringButton * 	GetButton() { return _button; }
+    SeaRobLight *  			GetLight() { return _light; }
+   	int  					GetExtraLightLen() { return _extraLightLen; }
+    SeaRobLight **	  		GetExtraLights() { return _extraLights; }
+    
+    bool 					IsOn() { return _light->IsOn(); }
+    void *					GetOpaque() { return _opaque; }
+    String					GetName() { return _name; }
 
   protected:
     void 					OnButtonDown(long updateTime);
-    
+    void 					OnButtonUp(long updateTime);
+
   private:
-    String                  _name;
-    SeaRobLight *         	_light;
-    SeaRobSpringButton *  	_button;
+    const String                _name;
+    const SeaRobSpringButton *  _button;
+    const bool					_dimmable;
+    const onStateChange    	  	_downHandler;
+    const onStateChange    	  	_upHandler;
+    const void *          		_opaque;
     
-    onStateChange    	  	_stateChangeHandler;
-    void *          		_opaque;
+    const SeaRobLight *         _light;
+    int							_extraLightLen;
+    int							_extraLightCapacity;
+    SeaRobLight **         		_extraLights;
     
   protected:
 	static void StaticOnButtonDown(SeaRobSpringButton *button, long updateTime) {
 	  SeaRobSpringButtonLight *bl = (SeaRobSpringButtonLight *) button->GetOpaque();
 	  bl->OnButtonDown(updateTime);
+	}
+	
+	static void StaticOnButtonUp(SeaRobSpringButton *button, long updateTime) {
+	  SeaRobSpringButtonLight *bl = (SeaRobSpringButtonLight *) button->GetOpaque();
+	  bl->OnButtonUp(updateTime);
 	}
 };
 

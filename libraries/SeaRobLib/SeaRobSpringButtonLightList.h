@@ -27,9 +27,9 @@ class SeaRobSpringButtonLightList :  public SeaRobObject {
 
   public:
     				SeaRobSpringButtonLightList(String name, int numLights, int startButtonPin, 
-    					int startLightPin, int selectorButtonPin);
+    					int startLightPin, int selectorButtonPin, bool useInternalPullUp = true);
     				SeaRobSpringButtonLightList(String name, int numLights, int* buttonPins, 
-    					int* lightPins, int selectorButtonPin);
+    					int* lightPins, int selectorButtonPin, bool useInternalPullUp = true);
     	virtual 	~SeaRobSpringButtonLightList();
 
     virtual void 	ProcessLoop(unsigned long updateTime);

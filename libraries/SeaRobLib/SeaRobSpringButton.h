@@ -7,7 +7,7 @@
 	Callback prototype for events triggered by the detected button press.
 */
 class SeaRobSpringButton;
-typedef void (*onPressDown) (SeaRobSpringButton *button, long updateTime);
+typedef void (*onButtonAction) (SeaRobSpringButton *button, long updateTime);
 
 
 /*
@@ -17,19 +17,22 @@ typedef void (*onPressDown) (SeaRobSpringButton *button, long updateTime);
 */
 class SeaRobSpringButton : public SeaRobObject {
   public:
-  				SeaRobSpringButton(String name, int pin, 
-  							onPressDown downHandler, void *opaque = NULL);
+  				SeaRobSpringButton(String name, int pin, bool useInternalPullUp,
+  							onButtonAction downHandler, onButtonAction upHandler = NULL, void *opaque = NULL);
   				
   		virtual void 	ProcessLoop(unsigned long updateTime);
   		void * 			GetOpaque() { return _opaque; }
   		
   private:
-	  String          _name;
-	  int             _pin;
-	  int             _levelPrev;
-	  
-	  onPressDown     _pressDownHandler;
-	  void *          _opaque;
+		const String          	_name;
+		const int             	_pin;
+		 
+		const onButtonAction   	_downHandler;
+		const onButtonAction   	_upHandler;
+		const void *          	_opaque;
+		
+		int             		_levelPrev;
+		int						_downLevel;
 };
 
 

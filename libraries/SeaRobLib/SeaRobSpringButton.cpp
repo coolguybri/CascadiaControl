@@ -5,16 +5,16 @@
 
 /*
  */
-SeaRobSpringButton::SeaRobSpringButton(String name, int pin, onPressDown downHandler, void *opaque) {
-	_name = name;
-	_pin = pin;
-	_levelPrev = HIGH;
-	_pressDownHandler = downHandler;
-	_opaque = opaque;
+SeaRobSpringButton::SeaRobSpringButton(String name, int pin, bool useInternalPullUp, 
+		onButtonAction downHandler, onButtonAction upHandler, void *opaque) 
+			: _name(name), _pin(pin), _downHandler(downHandler), _upHandler(upHandler), _opaque(opaque) {
 	
-	pinMode(_pin, INPUT_PULLUP);
+	_downLevel = useInternalPullUp ? LOW : HIGH;
+	_levelPrev = useInternalPullUp ? HIGH : LOW;
+	pinMode(_pin, useInternalPullUp ? INPUT_PULLUP : INPUT);
 	
-	bclogger("SeaRobSpringButton (%d): \"%s\" started on pin %d", _objId, _name.c_str(), _pin);
+	bclogger("SeaRobSpringButton [%d:%s] started on pin %d, internal-pullup=%d", 
+		_objId, _name.c_str(), _pin, useInternalPullUp);
 } 
 
 
@@ -25,19 +25,27 @@ void SeaRobSpringButton::ProcessLoop(unsigned long updateTime) {
 	// Light Button Control: Detect if the voltage level on the button has changed.
 	int currRead = digitalRead(_pin);   
 	if (currRead == _levelPrev) {
-		// bclogger("SeaRobSpringButton (%d): \"%s\" no change on pin %d level=%d", 
-		// _objId, button->_name.c_str(), button->_pin, currRead);
+		// bclogger("SeaRobSpringButton [%d:%s] level on pin %d is still the same (%d)", 
+		//	_objId, _name.c_str(), _pin, currRead);
 		return;
 	}
 	
-	// If this is a button-down event, trigger a state change for the street light subsystem.
-	if (currRead == LOW) {
-		bclogger("SeaRobSpringButton (%d): \"%s\" triggered buttonDown on pin %d", 
-			_objId, this->_name.c_str(), this->_pin);
-		_pressDownHandler(this, updateTime);
+	bclogger("SeaRobSpringButton [%d:%s] level on pin %d CHANGE (%d -> %d)", 
+		_objId, _name.c_str(), _pin, _levelPrev, currRead);
+	
+	// A transition just happened; lets figure out which type it is, and ripple the event up.
+	if (currRead == _downLevel) {
+		bclogger("SeaRobSpringButton [%d:%s] triggered buttonDown on pin %d", 
+			_objId, _name.c_str(), _pin);
+		if (_downHandler) {
+			_downHandler(this, updateTime);
+		}
 	} else {
-		//bclogger("SeaRobSpringButton (%d): \"%s\" triggered buttonUp on pin %d", 
-		//	_objId, this->_name.c_str(), this->_pin);
+		bclogger("SeaRobSpringButton [%d:%s] triggered buttonUp on pin %d", 
+			_objId, _name.c_str(), _pin);
+		if (_upHandler) {
+			_upHandler(this, updateTime);
+		}
 	}
 
   	_levelPrev = currRead;

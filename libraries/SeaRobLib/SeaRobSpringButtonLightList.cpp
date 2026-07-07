@@ -5,8 +5,9 @@
 
 /*
  */
-SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int* buttonPins, int* lightPins, int selectorButtonPin)
- : _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
+SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int* buttonPins, int* lightPins, 
+	int selectorButtonPin, bool useInternalPullUp)
+ 		: _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
 	// Alloc the light array.
 	_buttonLights = new SeaRobSpringButtonLight*[_numLights * 2];
 
@@ -14,14 +15,14 @@ SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLig
 	char buttonName[255];
 	for (int i = 0 ; i < _numLights ; i++) {
 		snprintf(buttonName, 255, "%s %d", name.c_str(), i + 1);
-		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, buttonPins[i], lightPins[i], 
-				StaticOnButtonDownLightIndividual, this);
+		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, buttonPins[i], lightPins[i], false, true,
+				StaticOnButtonDownLightIndividual, NULL, this);
 		_buttonLights[i] = bl;
 	}
 
     // Blink-mode selector button.
 	snprintf(buttonName, 255, "%s selector", name.c_str());
-    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, StaticOnButtonDownLightSelector, this);
+    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, useInternalPullUp, StaticOnButtonDownLightSelector, NULL, this);
     
     bclogger("SeaRobSpringButtonLightList (%d): created with num=%d, state=%d, selector=%d", 
 		_objId, _numLights, _blinkState, selectorButtonPin);
@@ -30,8 +31,9 @@ SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLig
 
 /*
  */
-SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int startButtonPin, int startLightPin, int selectorButtonPin)
- : _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
+SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLights, int startButtonPin, int startLightPin, 
+	int selectorButtonPin, bool useInternalPullUp)
+ 		: _numLights(numLights), _blinkState(BlinkState::BlinkState_Off) {
 	// Alloc the light array.
 	_buttonLights = new SeaRobSpringButtonLight*[_numLights];
 
@@ -39,14 +41,14 @@ SeaRobSpringButtonLightList::SeaRobSpringButtonLightList(String name, int numLig
 	char buttonName[255];
 	for (int i = 0 ; i < _numLights ; i++) {
 		snprintf(buttonName, 255, "%s button %d", name, i + 1);
-		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, startButtonPin + i, startLightPin + i, 
-			StaticOnButtonDownLightIndividual, this);
+		SeaRobSpringButtonLight * bl = new SeaRobSpringButtonLight(buttonName, startButtonPin + i, startLightPin + i, false, true,
+			StaticOnButtonDownLightIndividual, NULL, this);
 		_buttonLights[i] = bl;
 	}
 
     // Blink-mode selector button.
     snprintf(buttonName, 255, "%s selector", name);
-    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, StaticOnButtonDownLightSelector, this);
+    _buttonModeSelector = new SeaRobSpringButton(buttonName, selectorButtonPin, useInternalPullUp, StaticOnButtonDownLightSelector, NULL, this);
     
 	bclogger("SeaRobSpringButtonLightList (%d): created with num=%d, state=%d, button-start=%d, light-start=%d, selector=%d", 
 		_objId, _numLights, _blinkState, startButtonPin, startLightPin, selectorButtonPin);
